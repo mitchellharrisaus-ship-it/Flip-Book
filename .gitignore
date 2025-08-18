@@ -1,3 +1,5 @@
-.vs
-obj
-bin
+.vs/
+*.user
+
+obj/
+bin/
