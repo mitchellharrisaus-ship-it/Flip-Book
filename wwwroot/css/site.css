@@ -20,3 +20,8 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.canvas {
+    outline: 2px solid #000;
+    box-shadow: 4px 4px 10px;
+}
