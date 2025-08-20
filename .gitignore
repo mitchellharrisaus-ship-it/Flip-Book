@@ -1,5 +1,32 @@
-.vs/
-*.user
-
-obj/
+# Build artifacts
 bin/
+obj/
+*.pdb
+*.cache
+
+# npm
+node_modules
+package-lock.json
+
+# compiled-js from ts files
+wwwroot/js
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.ntvs*
+*.njsproj
+
+# OS files
+# mac
+.DS_Store
+
+# Environment / secrets
+.env
+*.local

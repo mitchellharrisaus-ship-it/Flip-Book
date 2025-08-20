@@ -7,5 +7,6 @@ public class CanvasModel : PageModel
 {
     public void OnGet()
     {
-    }
+		//var canvas = Request.Query["canvas"];
+	}
 }
