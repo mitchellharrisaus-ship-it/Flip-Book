@@ -1,0 +1,16 @@
+﻿{
+  "compilerOptions": {
+    "target": "es2017",
+    "outDir": "wwwroot/js",
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "types": [ "p5" ],
+    "esModuleInterop": true
+  },
+  "include": [
+    "wwwroot/**/*.ts"
+  ]
+}
