@@ -1,12 +1,10 @@
 ﻿/// <reference types="p5/global" />
 import { VertexObj } from "./Types/Vertex.js"
-import { getCanvas, getPixels } from "./canvasService.js"
+import { getCanvas, getCanvasRect, writeCanvasToFile } from "./canvasService.js"
 
 let isDrawing: boolean = false
 let canvas: HTMLCanvasElement = await getCanvas()
-let canvasSize: DOMRect = canvas.getBoundingClientRect()
-
-console.log("Canvas size:", canvasSize)
+let canvasSize: DOMRect = await getCanvasRect()
 
 interface MousePosition {
     x: number
@@ -34,12 +32,10 @@ canvas.addEventListener('pointerdown', (event: PointerEvent) => {
     beginShape()
 })
 
-canvas.addEventListener('pointerup', (event: PointerEvent) => {
+canvas.addEventListener('pointerup', async (event: PointerEvent) => {
     isDrawing = false
-    //clear()
-    //endShape()
-    //const canvasBuffer = loadPixels()
-    //fetch()
+
+    await writeCanvasToFile()
 })
 
 // --- UI ---
