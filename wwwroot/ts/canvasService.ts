@@ -1,5 +1,7 @@
 ﻿/// <reference types="p5/global" />
 
+import ImageDataDTO from "./DTOs/ImageDataDTO.js"
+
 let canvas: HTMLCanvasElement | null = null
 
 let resolveCanvas: (value: HTMLCanvasElement) => void
@@ -11,10 +13,33 @@ export async function getCanvas(): Promise<HTMLCanvasElement> {
     return await canvasLoaded
 }
 
-export function getPixels(): Uint8ClampedArray | null {
-    if (!canvas) return null
+export async function getCanvasRect(): Promise<DOMRect> {
+    return await canvasLoaded
+        .then(canvas => canvas.getBoundingClientRect())
+}
 
-    return canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data || null
+export async function writeCanvasToFile(): Promise<void> {
+    if (!canvas) {
+        console.log("Waiting for canvas to be loaded...")
+        await canvasLoaded
+    }
+
+    const encodedImage = canvas?.toDataURL('image/png', 1.0)
+    if (!encodedImage) {
+        console.error("Failed to encode canvas to image")
+        return
+    }
+
+    const canvasRect = await getCanvasRect()
+    const message = new ImageDataDTO(canvasRect.width, canvasRect.height, encodedImage, "my first image")
+
+    await fetch("api/canvas/write-to-file", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
+    })
 }
 
 export function clearCanvas() {
