@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EditorConfigFiles Remove="$(ProjectDir).editorconfig" />
     <None Include="$(ProjectDir).editorconfig" />
   </ItemGroup>

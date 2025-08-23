@@ -1,5 +1,6 @@
 ﻿/// <reference types="p5/global" />
 
+import DrawActionDTO from "./DTOs/DrawActionDTO.js"
 import ImageDataDTO from "./DTOs/ImageDataDTO.js"
 
 let canvas: HTMLCanvasElement | null = null
@@ -20,10 +21,10 @@ export async function getCanvasRect(): Promise<DOMRect> {
 
 export async function writeCanvasToFile(): Promise<void> {
     if (!canvas) {
-        console.log("Waiting for canvas to be loaded...")
         await canvasLoaded
     }
 
+    // might need to change file type here
     const encodedImage = canvas?.toDataURL('image/png', 1.0)
     if (!encodedImage) {
         console.error("Failed to encode canvas to image")
@@ -31,7 +32,7 @@ export async function writeCanvasToFile(): Promise<void> {
     }
 
     const canvasRect = await getCanvasRect()
-    const message = new ImageDataDTO(canvasRect.width, canvasRect.height, encodedImage, "my first image")
+    const message = new ImageDataDTO(canvasRect.width, canvasRect.height, encodedImage, "my first animation", 0)
 
     await fetch("api/canvas/write-to-file", {
         method: 'POST',
@@ -39,6 +40,20 @@ export async function writeCanvasToFile(): Promise<void> {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(message)
+    })
+}
+
+export async function writeActionToFile(action: DrawActionDTO): Promise<void> {
+    if (!canvas) {
+        await canvasLoaded
+    }
+
+    await fetch("api/canvas/write-action-to-file", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(action)
     })
 }
 
