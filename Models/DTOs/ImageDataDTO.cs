@@ -1,4 +1,4 @@
-﻿namespace Flipbook_App.Models;
+﻿namespace Flipbook_App.Models.DTOs;
 
 public class ImageDataDTO
 {
@@ -12,4 +12,5 @@ public class ImageDataDTO
 
 	public string FileExtension { get; set; }
 
+	public int FrameNumber { get; set; }
 }
