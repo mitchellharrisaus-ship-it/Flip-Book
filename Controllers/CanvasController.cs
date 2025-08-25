@@ -1,5 +1,7 @@
 ﻿using Flipbook_App.Models.DTOs;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Flipbook_App.Controllers;
 
@@ -8,6 +10,46 @@ namespace Flipbook_App.Controllers;
 public class CanvasController : ControllerBase
 {
 	readonly string animationsFolderPath = "Animations";
+	private readonly IWebHostEnvironment _env;
+
+	public CanvasController(IWebHostEnvironment env)
+	{
+		_env = env;
+	}
+
+	[HttpPost("save")]
+	[IgnoreAntiforgeryToken]
+	public async Task<IActionResult> Save()
+	{
+		try
+		{
+			using var reader = new StreamReader(Request.Body);
+			var body = await reader.ReadToEndAsync();
+
+			var doc = JsonDocument.Parse(body);
+			if (!doc.RootElement.TryGetProperty("imageData", out var imageDataElement))
+				return BadRequest("Missing imageData property.");
+
+			var base64Data = imageDataElement.GetString();
+			if (string.IsNullOrWhiteSpace(base64Data))
+				return BadRequest("imageData is empty.");
+
+			var base64 = base64Data.Substring(base64Data.IndexOf(",") + 1);
+			var bytes = Convert.FromBase64String(base64);
+
+			var folderPath = Path.Combine(_env.WebRootPath, "Animations", "CanvasUploads");
+			Directory.CreateDirectory(folderPath);
+
+			var filePath = Path.Combine(folderPath, "saved-drawing.png");
+			await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+
+			return Ok(new { success = true });
+		}
+		catch (Exception ex)
+		{
+			return BadRequest($"Exception: {ex.Message}");
+		}
+	}
 
 	[Route("write-to-file")]
 	[HttpPost]
