@@ -1,18 +1,83 @@
-﻿@page "/"
+﻿@page
 @model CanvasModel
 @{
     ViewData["Title"] = "Canvas";
 }
 
-<div>
-    <h1 class="display-4">Canvas</h1>
+<h2>Draw on the Canvas</h2>
 
-    <button class="btn btn-primary" id="clearButton">Clear</button>
-
-    @* <canvas class="canvas" id="canvasArea"></canvas> *@
-
-    <script type="module" src="~/js/DTOs/ImageDataDTO.js"></script>
-    <script type="module" src="~/js/canvasService.js"></script>
-    <script type="module" src="~/js/Types/Vertex.js"></script>
-    <script type="module" src="~/js/draw.js"></script>
+<div class="canvas-container">
+    <canvas id="drawingCanvas" width="800" height="600"></canvas>
+    <button id="clearButton" class="btn btn-primary">Clear</button>
+    <button id="saveButton" class="btn btn-success">Save</button>
 </div>
+
+@section Scripts {
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            lastX = x;
+            lastY = y;
+        });
+
+        canvas.addEventListener('pointerup', () => {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('pointerleave', () => {
+            isDrawing = false;
+        });
+
+        document.getElementById('clearButton').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        document.getElementById('saveButton').addEventListener('click', async () => {
+            const dataUrl = canvas.toDataURL('image/png');
+            await fetch('/Canvas?handler=Save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageData: dataUrl })
+            });
+            alert('Drawing saved!');
+        });
+    </script>
+}
+
+<style>
+    .canvas-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        max-width: 820px;
+    }
+    #drawingCanvas {
+        border: 1px solid #ccc;
+        background: white;
+        touch-action: none;
+    }
+</style>

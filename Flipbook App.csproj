@@ -12,4 +12,12 @@
     <None Include="$(ProjectDir).editorconfig" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Animations\CanvasUploads\" />
+  </ItemGroup>
+
 </Project>
