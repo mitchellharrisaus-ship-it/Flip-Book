@@ -47,6 +47,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
 
   <Target Name="CopyClientBlazorApp" AfterTargets="Build">
     <!-- Temporary folder for client publish -->

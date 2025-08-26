@@ -5,7 +5,7 @@ obj/
 *.cache
 
 # Attached Client to server files
-wwwroot/canvas
+wwwroot/canvas/*
 
 # npm
 node_modules

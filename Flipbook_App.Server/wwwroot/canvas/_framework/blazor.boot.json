@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "Flipbook_App.Client",
   "resources": {
-    "hash": "sha256-GiYboswhwCSJ12OspbIwjJb4U7kN5mxZg93hhF4508Q=",
+    "hash": "sha256-XnAOjaXZp/FBXnbFxePQIkxt2UHfem6M4ZhBK2JU0+k=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-u7ux1oSJJ97TGDK6RStHtcASuKfJuwdsuQUR5p+/+d0="
     },
@@ -18,7 +18,7 @@
     },
     "coreAssembly": {},
     "assembly": {
-      "Flipbook_App.Client.wasm": "sha256-/G49lNsZ+WohFsEjY1HFMxIvXvbgPOCuH8s2DYVvZ0Y=",
+      "Flipbook_App.Client.wasm": "sha256-vQi3s5AqVr+5oKdzyK1QTTAcEpOMN9u7WKa4Gx8Il6A=",
       "Microsoft.AspNetCore.Components.wasm": "sha256-N1zxgOU6eZALP/mZNUHXEaGMlSyoR798cvMCYt+r9kc=",
       "Microsoft.AspNetCore.Components.Web.wasm": "sha256-XViuJeEMMPN5tqJ4n7IIb6ZBL5vV/ORT2y20i4735DY=",
       "Microsoft.AspNetCore.Components.WebAssembly.wasm": "sha256-NifB+WALfq9eqybabmd4SLUHfSU90MGiwJKKZlVjB48=",
