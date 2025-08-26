@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Flipbook_App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Animations\CanvasUploads\**" />
+    <Content Remove="Animations\CanvasUploads\**" />
+    <EmbeddedResource Remove="Animations\CanvasUploads\**" />
+    <None Remove="Animations\CanvasUploads\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(ProjectDir).editorconfig" />
+    <None Include=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.19" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="CopyClientBlazorApp" AfterTargets="Build">
+    <!-- Temporary folder for client publish -->
+    <PropertyGroup>
+      <ClientPublishTemp>$(ProjectDir)ClientPublishTemp</ClientPublishTemp>
+      <ServerCanvas>$(ProjectDir)wwwroot\canvas</ServerCanvas>
+      <ClientProject>$(SolutionDir)\Flipbook_App.Client\Flipbook_App.Client.csproj</ClientProject>
+    </PropertyGroup>
+
+    <!-- Publish the client to a temporary folder -->
+    <Exec Command="dotnet publish &quot;$(ClientProject)&quot; -c $(Configuration) -o &quot;$(ClientPublishTemp)&quot; --no-build" />
+
+    <!-- Delete old canvas folder if exists -->
+    <RemoveDir Directories="$(ServerCanvas)" />
+
+    <!-- Create canvas folder -->
+    <MakeDir Directories="$(ServerCanvas)" />
+
+    <!-- Copy all files from client wwwroot recursively, preserving folder structure -->
+    <ItemGroup>
+      <ClientWwwRoot Include="$(ClientPublishTemp)\wwwroot\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ClientWwwRoot)" DestinationFolder="$(ServerCanvas)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+
+    <!-- Delete temporary folder -->
+    <RemoveDir Directories="$(ClientPublishTemp)" />
+  </Target>
+
+
+</Project>

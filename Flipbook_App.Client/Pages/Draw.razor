@@ -1,0 +1,80 @@
+﻿@page "/"
+@using Flipbook_App.Client.Services
+@inject IJSRuntime JSRuntime
+
+<h3>SkiaSharp Drawing</h3>
+
+<button @onclick="ClearCanvas">Clear</button>
+
+<SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
+    OnPaintSurface="PaintCanvas"
+    IgnorePixelScaling="true"
+    @onpointermove="PointerMove"
+    @onpointerdown="PointerDown"
+    @onpointerup="PointerUp"
+    @onpointerleave="PointerUp"
+    style="touch-action: none; width:800px; height:600px;" />
+
+@code {
+    SkiaDrawingService drawingService = new();
+    SKCanvasView? canvasView;
+
+    float scaleX = 1f;
+    float scaleY = 1f;
+    float canvasLeft = 0f;
+    float canvasTop = 0f;
+
+    record DomRect(double left, double top, double width, double height);
+
+    // Use JS runtime to get the bounding rect of the canvas, this information is not exposed by SkiaSharp.
+    // Script is defined in wwwroot/js/canvasHelper.js
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var rect = await JSRuntime.InvokeAsync<DomRect>("getCanvasRect");
+            canvasLeft = (float)rect.left;
+            canvasTop = (float)rect.top;
+            scaleX = 800f / (float)rect.width;   // CSS width / actual bounding width
+            scaleY = 600f / (float)rect.height;  // CSS height / actual bounding height
+        }
+    }
+
+    void PaintCanvas(SKPaintSurfaceEventArgs e)
+    {
+        drawingService.Draw(e.Surface.Canvas);
+    }
+
+    void PointerDown(PointerEventArgs e)
+    {
+        var mousePosition = GetMousePosition(e);
+        drawingService.HandlePointerDown(mousePosition.X, mousePosition.Y);
+    }
+
+    void PointerMove(PointerEventArgs e)
+    {
+        var mousePosition = GetMousePosition(e);
+        drawingService.HandlePointerMove(mousePosition.X, mousePosition.Y);
+        canvasView?.Invalidate(); // triggers redraw
+    }
+
+    void PointerUp(Microsoft.AspNetCore.Components.Web.PointerEventArgs e)
+    {
+        drawingService.HandlePointerUp();
+    }
+
+    void ClearCanvas()
+    {
+        drawingService.Clear();
+    }
+
+    SKPoint GetMousePosition(PointerEventArgs e) 
+    {
+        var x = (e.ClientX - canvasLeft) * scaleX;
+        var y = (e.ClientY - canvasTop) * scaleY;
+
+        return new((float)x, (float)y);
+    }
+
+}
+
