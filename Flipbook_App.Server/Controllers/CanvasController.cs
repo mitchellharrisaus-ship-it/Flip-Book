@@ -1,5 +1,4 @@
 ﻿using Flipbook_App.Models.DTOs;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -10,46 +9,47 @@ namespace Flipbook_App.Controllers;
 public class CanvasController : ControllerBase
 {
 	readonly string animationsFolderPath = "Animations";
-	private readonly IWebHostEnvironment _env;
+	readonly string actionsPathName = "Actions";
+	//readonly IWebHostEnvironment _env;
 
-	public CanvasController(IWebHostEnvironment env)
-	{
-		_env = env;
-	}
+	//public CanvasController(IWebHostEnvironment env)
+	//{
+	//	_env = env;
+	//}
 
-	[HttpPost("save")]
-	[IgnoreAntiforgeryToken]
-	public async Task<IActionResult> Save()
-	{
-		try
-		{
-			using var reader = new StreamReader(Request.Body);
-			var body = await reader.ReadToEndAsync();
+	//[HttpPost("save")]
+	//[IgnoreAntiforgeryToken]
+	//public async Task<IActionResult> Save()
+	//{
+	//	try
+	//	{
+	//		using var reader = new StreamReader(Request.Body);
+	//		var body = await reader.ReadToEndAsync();
 
-			var doc = JsonDocument.Parse(body);
-			if (!doc.RootElement.TryGetProperty("imageData", out var imageDataElement))
-				return BadRequest("Missing imageData property.");
+	//		var doc = JsonDocument.Parse(body);
+	//		if (!doc.RootElement.TryGetProperty("imageData", out var imageDataElement))
+	//			return BadRequest("Missing imageData property.");
 
-			var base64Data = imageDataElement.GetString();
-			if (string.IsNullOrWhiteSpace(base64Data))
-				return BadRequest("imageData is empty.");
+	//		var base64Data = imageDataElement.GetString();
+	//		if (string.IsNullOrWhiteSpace(base64Data))
+	//			return BadRequest("imageData is empty.");
 
-			var base64 = base64Data.Substring(base64Data.IndexOf(",") + 1);
-			var bytes = Convert.FromBase64String(base64);
+	//		var base64 = base64Data.Substring(base64Data.IndexOf(",") + 1);
+	//		var bytes = Convert.FromBase64String(base64);
 
-			var folderPath = Path.Combine(_env.WebRootPath, "Animations", "CanvasUploads");
-			Directory.CreateDirectory(folderPath);
+	//		var folderPath = Path.Combine(_env.WebRootPath, "Animations", "CanvasUploads");
+	//		Directory.CreateDirectory(folderPath);
 
-			var filePath = Path.Combine(folderPath, "saved-drawing.png");
-			await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+	//		var filePath = Path.Combine(folderPath, "saved-drawing.png");
+	//		await System.IO.File.WriteAllBytesAsync(filePath, bytes);
 
-			return Ok(new { success = true });
-		}
-		catch (Exception ex)
-		{
-			return BadRequest($"Exception: {ex.Message}");
-		}
-	}
+	//		return Ok(new { success = true });
+	//	}
+	//	catch (Exception ex)
+	//	{
+	//		return BadRequest($"Exception: {ex.Message}");
+	//	}
+	//}
 
 	[Route("write-to-file")]
 	[HttpPost]
@@ -63,24 +63,50 @@ public class CanvasController : ControllerBase
 		var imageDataBytes = imageData.EncodedImage.Split(",")[1];
 		var imageBytes = Convert.FromBase64String(imageDataBytes);
 
-		var animationPath = $"{animationsFolderPath}/{imageData.ImageName}";
-
+		var animationPath = Path.Combine(animationsFolderPath, imageData.ImageName);
 		Directory.CreateDirectory(animationPath);
-		System.IO.File.WriteAllBytes($"{animationPath}/Frame_{imageData.FrameNumber}.{imageData.FileExtension}", imageBytes);
+
+		var filePath = Path.Combine(animationPath, $"Frame_{imageData.FrameNumber}.{imageData.FileExtension}");
+		System.IO.File.WriteAllBytes(filePath, imageBytes);
 
 		return Ok("Canvas data received successfully.");
 	}
 
-	[Route("write-action-to-file")]
+	[Route("write-action-to-file/{animationName}")]
 	[HttpPost]
-	public IActionResult WriteActionToFile([FromBody] DrawActionDTO drawAction)
+	public async Task<IActionResult> WriteActionToFile([FromBody] DrawActionDTO drawAction, string animationName)
 	{
 		if (drawAction == null || drawAction.Vertices == null || drawAction.Vertices.Length == 0 || drawAction.BrushColour == null)
 		{
 			return BadRequest("Draw action data missing required data.");
 		}
 
+		try
+		{
+			var animationPath = Path.Combine(animationsFolderPath, animationName);
+			var actionsPath = Path.Combine(animationPath, actionsPathName);
+			Directory.CreateDirectory(actionsPath);
 
+			var actionFilePath = Path.Combine(actionsPath, $"Action_Frame_{drawAction.ActionFrame}.json");
+
+			if (!System.IO.File.Exists(actionFilePath))
+			{
+				var drawActionJson = JsonSerializer.SerializeToUtf8Bytes(new List<DrawActionDTO> { drawAction });
+
+				await System.IO.File.WriteAllBytesAsync(actionFilePath, drawActionJson);
+			}
+			else
+			{
+				var existingFile = await System.IO.File.ReadAllBytesAsync(actionFilePath);
+				var deserializedData = JsonSerializer.Deserialize<IEnumerable<DrawActionDTO>>(existingFile);
+			
+				await System.IO.File.WriteAllBytesAsync(actionFilePath, JsonSerializer.SerializeToUtf8Bytes(deserializedData?.Append(drawAction)));
+			}
+		}
+		catch
+		{
+			return BadRequest("Failed to write draw action data to file.");
+		}
 
 		return Ok("Draw action data received successfully.");
 	}

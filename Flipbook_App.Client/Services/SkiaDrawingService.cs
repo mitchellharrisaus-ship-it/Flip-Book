@@ -1,3 +1,5 @@
+using Flipbook_App.Client.Models;
+using Flipbook_App.Client.Models.DTOs;
 using SkiaSharp;
 
 namespace Flipbook_App.Client.Services;
@@ -6,6 +8,10 @@ public class SkiaDrawingService
 {
 	List<List<SKPoint>> Shapes { get; } = [];
 	List<SKPoint> CurrentShape { get; set; } = [];
+	
+	public BrushType ActiveBrush { get; set; } = BrushType.Pen;
+	public SKColor BrushColour { get; set; } = SKColors.Black;
+	public int BrushSize { get; set; } = 2;
 
 	bool isDrawing;
 
@@ -48,6 +54,18 @@ public class SkiaDrawingService
 		isDrawing = false;
 	}
 
+	public DrawActionDTO GetDrawAction()
+	{
+		return new DrawActionDTO() 
+		{
+			Vertices = CurrentShape.Select(p => new Vertex { X = p.X, Y = p.Y }).ToArray(),
+			Brush = ActiveBrush,
+			BrushColour = new Colour { A = BrushColour.Alpha, R = BrushColour.Red, G = BrushColour.Green, B = BrushColour.Blue },
+			BrushSize = BrushSize,
+			ActionFrame = 0
+		};
+	}
+
 	public void Draw(SKCanvas canvas)
 	{
 		canvas.Clear(SKColors.White);
@@ -55,9 +73,11 @@ public class SkiaDrawingService
 		using var paint = new SKPaint
 		{
 			Style = SKPaintStyle.Stroke,
-			Color = SKColors.Black,
-			StrokeWidth = 3,
 			StrokeCap = SKStrokeCap.Round,
+
+			Color = BrushColour,
+			StrokeWidth = BrushSize,
+			
 			IsAntialias = true
 		};
 

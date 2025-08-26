@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Flipbook_App.Client.Services
 @inject IJSRuntime JSRuntime
+@inject DrawActionApiService ApiService
 
 <h3>SkiaSharp Drawing</h3>
 
@@ -58,9 +59,11 @@
         canvasView?.Invalidate(); // triggers redraw
     }
 
-    void PointerUp(Microsoft.AspNetCore.Components.Web.PointerEventArgs e)
+    void PointerUp(PointerEventArgs e)
     {
         drawingService.HandlePointerUp();
+
+        ApiService.SendDrawAction(drawingService.GetDrawAction(), "My Second Animation");
     }
 
     void ClearCanvas()

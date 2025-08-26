@@ -28,6 +28,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <Folder Include="Animations\My Second Animation\" />
     <Folder Include="Services\" />
   </ItemGroup>
 
