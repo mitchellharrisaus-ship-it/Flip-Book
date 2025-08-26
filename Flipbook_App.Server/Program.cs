@@ -16,12 +16,14 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseBlazorFrameworkFiles("/canvas");
 
 app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapRazorPages();
 app.MapControllers();
+app.MapRazorPages();
+app.MapFallbackToFile("/canvas/{*path}", "canvas/index.html");
 
 app.Run();
