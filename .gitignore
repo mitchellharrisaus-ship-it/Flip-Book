@@ -4,12 +4,11 @@ obj/
 *.pdb
 *.cache
 
+Flipbook_App.Server/wwwroot/canvas
+
 # npm
 node_modules
 package-lock.json
-
-# compiled-js from ts files
-wwwroot/js
 
 # Logs
 *.log

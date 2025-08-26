@@ -15,33 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="C:\Projects\Flipbook App\Flipbook_App.Server\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="$(ProjectDir).editorconfig" />
-    <None Include=".editorconfig" />
+    <None Include="$(SolutionDir).editorconfig" />
+    <None Include="$(SolutionDir).gitignore" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.19" />
-    <PackageReference Include="SkiaSharp" Version="3.119.0" />
   </ItemGroup>
   
   <ItemGroup>
