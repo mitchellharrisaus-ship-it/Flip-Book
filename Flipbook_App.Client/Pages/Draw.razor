@@ -1,19 +1,21 @@
 ﻿@page "/"
 @using Flipbook_App.Client.Services
 @inject IJSRuntime JSRuntime
+@inject DrawActionApiService ApiService
 
 <h3>SkiaSharp Drawing</h3>
 
 <button @onclick="ClearCanvas">Clear</button>
+<button @onclick="LoadImage">Load Image</button>
 
 <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
-    OnPaintSurface="PaintCanvas"
-    IgnorePixelScaling="true"
-    @onpointermove="PointerMove"
-    @onpointerdown="PointerDown"
-    @onpointerup="PointerUp"
-    @onpointerleave="PointerUp"
-    style="touch-action: none; width:800px; height:600px;" />
+OnPaintSurface="PaintCanvas"
+IgnorePixelScaling="true"
+@onpointermove="PointerMove"
+@onpointerdown="PointerDown"
+@onpointerup="PointerUp"
+@onpointerleave="PointerLeave"
+style="touch-action: none; width:800px; height:600px;" />
 
 @code {
     SkiaDrawingService drawingService = new();
@@ -51,21 +53,23 @@
         drawingService.HandlePointerDown(mousePosition.X, mousePosition.Y);
     }
 
-    void PointerMove(PointerEventArgs e)
+    void PointerUp(PointerEventArgs e)
     {
-        var mousePosition = GetMousePosition(e);
-        drawingService.HandlePointerMove(mousePosition.X, mousePosition.Y);
-        canvasView?.Invalidate(); // triggers redraw
+        drawingService.HandlePointerUp();
+
+        ApiService.SendDrawAction(drawingService.GetDrawAction(), "My Second Animation");
     }
 
-    void PointerUp(Microsoft.AspNetCore.Components.Web.PointerEventArgs e)
+    void PointerLeave(PointerEventArgs e)
     {
         drawingService.HandlePointerUp();
     }
 
-    void ClearCanvas()
+    void PointerMove(PointerEventArgs e)
     {
-        drawingService.Clear();
+        var mousePosition = GetMousePosition(e);
+        drawingService.HandlePointerMove(mousePosition.X, mousePosition.Y);
+        RedrawCanvas();
     }
 
     SKPoint GetMousePosition(PointerEventArgs e) 
@@ -76,5 +80,22 @@
         return new((float)x, (float)y);
     }
 
+    void RedrawCanvas()
+    {
+        canvasView?.Invalidate(); // triggers redraw
+    }
+
+    void ClearCanvas()
+    {
+        drawingService.Clear();
+        RedrawCanvas();
+    }
+
+    async Task LoadImage()
+    {
+        var actions = await ApiService.LoadAnimation("My Second Animation");
+        drawingService.RecreateAnimation(actions);
+        RedrawCanvas();
+    }
 }
 

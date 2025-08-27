@@ -1,4 +1,4 @@
-﻿namespace Flipbook_App.Models.DTOs;
+﻿namespace Flipbook_App.Client.Models.DTOs;
 
 public class DrawActionDTO
 {
