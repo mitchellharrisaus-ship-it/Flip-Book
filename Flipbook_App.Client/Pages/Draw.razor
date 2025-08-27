@@ -63,6 +63,8 @@ style="touch-action: none; width:800px; height:600px;" />
     void PointerLeave(PointerEventArgs e)
     {
         drawingService.HandlePointerUp();
+
+        ApiService.SendDrawAction(drawingService.GetDrawAction(), "My Second Animation");
     }
 
     void PointerMove(PointerEventArgs e)
