@@ -4,7 +4,8 @@ obj/
 *.pdb
 *.cache
 
-Flipbook_App.Server/wwwroot/canvas
+**/wwwroot/canvas
+**/Animations/
 
 # npm
 node_modules

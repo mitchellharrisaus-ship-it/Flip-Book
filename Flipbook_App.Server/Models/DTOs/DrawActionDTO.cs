@@ -2,7 +2,7 @@
 
 public class DrawActionDTO
 {
-	public required Vertex[] Vertices { get; set; }
+	public IList<Vertex> Vertices { get; set; } = [];
 
 	public BrushType Brush { get; set; }
 
