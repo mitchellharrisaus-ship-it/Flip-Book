@@ -1,5 +1,4 @@
 ﻿using Flipbook_App.Models.DTOs;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -10,6 +9,7 @@ namespace Flipbook_App.Controllers;
 public class CanvasController : ControllerBase
 {
 	readonly string animationsFolderPath = "Animations";
+	readonly string actionsPathName = "Actions";
 	private readonly IWebHostEnvironment _env;
 
 	public CanvasController(IWebHostEnvironment env)

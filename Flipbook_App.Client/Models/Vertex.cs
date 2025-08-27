@@ -1,4 +1,4 @@
-﻿namespace Flipbook_App.Models;
+﻿namespace Flipbook_App.Client.Models;
 
 public class Vertex
 {

@@ -9,9 +9,13 @@
 
   <ItemGroup>
     <Compile Remove="Animations\CanvasUploads\**" />
+    <Compile Remove="Services\**" />
     <Content Remove="Animations\CanvasUploads\**" />
+    <Content Remove="Services\**" />
     <EmbeddedResource Remove="Animations\CanvasUploads\**" />
+    <EmbeddedResource Remove="Services\**" />
     <None Remove="Animations\CanvasUploads\**" />
+    <None Remove="Services\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,7 +32,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="Services\" />
+    <Folder Include="Animations\" />
   </ItemGroup>
 
   <Target Name="CopyClientBlazorApp" AfterTargets="Build">
