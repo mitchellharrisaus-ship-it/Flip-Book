@@ -7,6 +7,7 @@ public class DrawActionApiService
 {
 	const string apiPath = "/api/canvas";
 	const string writeActionToFilePath = $"{apiPath}/write-action-to-file";
+	const string getActionsPath = $"{apiPath}/get-actions";
 
 	readonly HttpClient httpClient;
 
@@ -17,14 +18,19 @@ public class DrawActionApiService
 
 	public void SendDrawAction(DrawActionDTO? drawAction, string animationName)
 	{
-		//var content = new StringContent(JsonSerializer.Serialize(drawAction), System.Text.Encoding.UTF8, "application/json");
-
-		//var urlParams = new Dictionary<string, string>()
-		//{
-		//	{ "animationName", animationName }
-		//};
-		//var queryStringParams = await new FormUrlEncodedContent(urlParams).ReadAsStringAsync();
-
 		httpClient.PostAsJsonAsync($"{writeActionToFilePath}/{animationName}", drawAction);
+	}
+
+	public async Task<IEnumerable<DrawActionDTO>> LoadAnimation(string animationName)
+	{
+		var response = await httpClient.GetAsync($"{getActionsPath}/{animationName}");
+
+		if (response.IsSuccessStatusCode)
+		{
+			var actions = await response.Content.ReadFromJsonAsync<IEnumerable<DrawActionDTO>>();
+			return actions ?? throw new Exception("Failed to load animation data.");
+		}
+
+		throw new Exception("Failed to load animation data.");
 	}
 }

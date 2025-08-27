@@ -1,6 +1,4 @@
 ﻿window.getCanvasRect = () => {
-    console.log(document)
-
     const canvas = document.getElementById("canvasArea")
     if (!canvas) {
         console.error("Couldn't find canvas element, no element has an id of 'canvasArea'")

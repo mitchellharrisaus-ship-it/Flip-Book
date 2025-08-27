@@ -111,4 +111,30 @@ public class CanvasController : ControllerBase
 		return Ok("Draw action data received successfully.");
 	}
 
+	[Route("get-actions/{animationName}")]
+	[HttpGet]
+	public async Task<IActionResult> GetActions(string animationName)
+	{
+		var animationPath = Path.Combine(animationsFolderPath, animationName);
+		var actionsPath = Path.Combine(animationPath, actionsPathName);
+		if (!Directory.Exists(actionsPath))
+		{
+			return NotFound("No actions found for the specified animation.");
+		}
+
+		var actionFiles = Directory.GetFiles(actionsPath, "Action_Frame_*.json");
+		var allActions = new List<DrawActionDTO>();
+		foreach (var file in actionFiles)
+		{
+			var fileContent = await System.IO.File.ReadAllBytesAsync(file);
+			var actions = JsonSerializer.Deserialize<IEnumerable<DrawActionDTO>>(fileContent);
+			if (actions != null)
+			{
+				allActions.AddRange(actions);
+			}
+		}
+
+		return Ok(allActions);
+	}
+
 }
