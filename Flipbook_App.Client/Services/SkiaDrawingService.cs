@@ -6,21 +6,32 @@ namespace Flipbook_App.Client.Services;
 
 public class SkiaDrawingService
 {
-	List<List<SKPoint>> Shapes { get; } = [];
-	List<SKPoint> CurrentShape { get; set; } = [];
+	public List<DrawActionDTO> Shapes { get; } = [];
+	public DrawActionDTO? CurrentShape { get; set; }
 	
 	public BrushType ActiveBrush { get; set; } = BrushType.Pen;
 	public SKColor BrushColour { get; set; } = SKColors.Black;
 	public int BrushSize { get; set; } = 2;
 
+
 	bool isDrawing;
+
+	Stack<DrawActionDTO> undoneActions = [];
 
 	public void HandlePointerDown(float x, float y)
 	{
 		isDrawing = true;
 		var initialPoint = new SKPoint(x, y);
 
-		CurrentShape = new List<SKPoint> { initialPoint };
+		CurrentShape = new()
+		{
+			Vertices = [new Vertex(initialPoint.X, initialPoint.Y)],
+			Brush = ActiveBrush,
+			BrushColour = new Colour(BrushColour),
+			BrushSize = BrushSize,
+		};
+
+		undoneActions.Clear();
 	}
 
 	public void HandlePointerMove(float x, float y)
@@ -30,9 +41,7 @@ public class SkiaDrawingService
 			return;
 		}
 
-		var currentPoint = new SKPoint(x, y);
-
-		CurrentShape.Add(currentPoint);
+		CurrentShape?.Vertices.Add(new Vertex(x,y));
 	}
 
 	public void HandlePointerUp()
@@ -43,32 +52,27 @@ public class SkiaDrawingService
 		}
 	
 		isDrawing = false;
+
+		if (CurrentShape == null)
+		{
+			return;
+		}
+
 		Shapes.Add(CurrentShape);
+		CurrentShape = null;
 	}
 
 	public void Clear()
 	{
 		Shapes.Clear();
-		CurrentShape.Clear();
+		CurrentShape?.Vertices.Clear();
 
 		isDrawing = false;
 	}
 
-	public DrawActionDTO GetDrawAction()
+	public void RecreateAnimation(IEnumerable<DrawActionDTO> drawActions)
 	{
-		return new DrawActionDTO() 
-		{
-			Vertices = CurrentShape.Select(p => new Vertex { X = p.X, Y = p.Y }).ToArray(),
-			Brush = ActiveBrush,
-			BrushColour = new Colour { A = BrushColour.Alpha, R = BrushColour.Red, G = BrushColour.Green, B = BrushColour.Blue },
-			BrushSize = BrushSize,
-			ActionFrame = 0
-		};
-	}
-
-	public void RecreateAnimation(IEnumerable<DrawActionDTO> actions)
-	{
-		foreach (var action in actions)
+		foreach (var action in drawActions)
 		{
 			BrushColour = new SKColor((byte)action.BrushColour.R, (byte)action.BrushColour.G, (byte)action.BrushColour.B, (byte)action.BrushColour.A);
 			BrushSize = action.BrushSize;
@@ -83,38 +87,74 @@ public class SkiaDrawingService
 		}
 	}
 
+	public void Undo()
+	{
+		if (!Shapes.Any())
+		{
+			return;
+		}
+
+		var lastAction = Shapes.Last();
+		Shapes.RemoveAt(Shapes.Count - 1);
+		undoneActions.Push(lastAction);
+	}
+
+	public DrawActionDTO? Redo()
+	{
+		if (!undoneActions.Any())
+		{
+			return null;
+		}
+
+		var actionToRedo = undoneActions.Pop();
+		Shapes.Add(actionToRedo);
+
+		return actionToRedo;
+	}
+
 	public void Draw(SKCanvas canvas)
 	{
 		canvas.Clear(SKColors.White);
 
-		using var paint = new SKPaint
+		foreach (var shape in Shapes)
+		{
+			DrawShape(canvas, shape);
+		}
+
+		if (CurrentShape == null)
+		{
+			return;
+		}
+
+		DrawShape(canvas, CurrentShape);
+	}
+
+	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	{
+		using var paint = GetShapePaint(shape);
+
+		for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
+		{
+			var currentPoint = shape.Vertices[pointIndex];
+			var previousPoint = shape.Vertices[pointIndex - 1];
+
+			canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), paint);
+		}
+	}
+
+	static SKPaint GetShapePaint(DrawActionDTO shape)
+	{
+		var color = new SKColor((byte)shape.BrushColour.R, (byte)shape.BrushColour.G, (byte)shape.BrushColour.B, (byte)shape.BrushColour.A);
+
+		return new SKPaint
 		{
 			Style = SKPaintStyle.Stroke,
 			StrokeCap = SKStrokeCap.Round,
 
-			Color = BrushColour,
-			StrokeWidth = BrushSize,
-			
+			Color = color,
+			StrokeWidth = shape.BrushSize,
+
 			IsAntialias = true
 		};
-
-		foreach (var shape in Shapes)
-		{
-			for (var pointIndex = 1; pointIndex < shape.Count; pointIndex++)
-			{
-				var currentPoint = shape[pointIndex];
-				var previousPoint = shape[pointIndex - 1];
-
-				canvas.DrawLine(previousPoint, currentPoint, paint);
-			}
-		}
-
-		for (var pointIndex = 1; pointIndex < CurrentShape.Count; pointIndex++)
-		{
-			var currentPoint = CurrentShape[pointIndex];
-			var previousPoint = CurrentShape[pointIndex - 1];
-
-			canvas.DrawLine(previousPoint, currentPoint, paint);
-		}
 	}
 }

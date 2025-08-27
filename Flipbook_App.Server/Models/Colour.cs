@@ -1,6 +1,6 @@
 ﻿namespace Flipbook_App.Models;
 
-public class Colour
+public struct Colour
 {
 	public int R { get; set; }
 
