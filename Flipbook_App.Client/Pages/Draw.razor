@@ -51,8 +51,7 @@ style="touch-action: none; width:800px; height:600px;" />
 
     void PaintCanvas(SKPaintSurfaceEventArgs e)
     {
-        canvas = e.Surface.Canvas;
-        drawingService.Draw(canvas);
+        drawingService.Draw(e.Surface.Canvas);
     }
 
     void PointerDown(PointerEventArgs e)
