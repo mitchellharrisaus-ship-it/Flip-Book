@@ -1,13 +1,14 @@
-﻿namespace Flipbook_App.Client.Models;
+﻿using SkiaSharp;
 
-public class Colour
+namespace Flipbook_App.Client.Models;
+
+public struct Colour(SKColor color)
 {
-	public int R { get; set; }
+	public int R { get; set; } = color.Red;
 
-	public int G { get; set; }
+	public int G { get; set; } = color.Green;
 
-	public int B { get; set; }
+	public int B { get; set; } = color.Blue;
 
-	public int A { get; set; }
-
+	public int A { get; set; } = color.Alpha;
 }

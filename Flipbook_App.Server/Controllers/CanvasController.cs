@@ -10,82 +10,47 @@ public class CanvasController : ControllerBase
 {
 	readonly string animationsFolderPath = "Animations";
 	readonly string actionsPathName = "Actions";
-	private readonly IWebHostEnvironment _env;
 
-	public CanvasController(IWebHostEnvironment env)
-	{
-		_env = env;
-	}
-
-	[HttpPost("save")]
-	[IgnoreAntiforgeryToken]
-	public async Task<IActionResult> Save()
-	{
-		try
-		{
-			using var reader = new StreamReader(Request.Body);
-			var body = await reader.ReadToEndAsync();
-
-			var doc = JsonDocument.Parse(body);
-			if (!doc.RootElement.TryGetProperty("imageData", out var imageDataElement))
-				return BadRequest("Missing imageData property.");
-
-			var base64Data = imageDataElement.GetString();
-			if (string.IsNullOrWhiteSpace(base64Data))
-				return BadRequest("imageData is empty.");
-
-			var base64 = base64Data.Substring(base64Data.IndexOf(",") + 1);
-			var bytes = Convert.FromBase64String(base64);
-
-			var folderPath = Path.Combine(_env.WebRootPath, "Animations", "CanvasUploads");
-			Directory.CreateDirectory(folderPath);
-
-			var filePath = Path.Combine(folderPath, "saved-drawing.png");
-			await System.IO.File.WriteAllBytesAsync(filePath, bytes);
-
-			return Ok(new { success = true });
-		}
-		catch (Exception ex)
-		{
-			return BadRequest($"Exception: {ex.Message}");
-		}
-	}
-
-	[Route("write-to-file")]
+	[Route("actions/{animationName}")]
 	[HttpPost]
-	public IActionResult WriteCanvas([FromBody] ImageDataDTO imageData)
+	public async Task<IActionResult> WriteActionToFile([FromBody] DrawActionDTO drawAction, string animationName)
 	{
-		if (string.IsNullOrEmpty(imageData.EncodedImage))
-		{
-			return BadRequest("Canvas data cannot be empty.");
-		}
-
-		var imageDataBytes = imageData.EncodedImage.Split(",")[1];
-		var imageBytes = Convert.FromBase64String(imageDataBytes);
-
-		var animationPath = $"{animationsFolderPath}/{imageData.ImageName}";
-
-		Directory.CreateDirectory(animationPath);
-		System.IO.File.WriteAllBytes($"{animationPath}/Frame_{imageData.FrameNumber}.{imageData.FileExtension}", imageBytes);
-
-		return Ok("Canvas data received successfully.");
-	}
-
-	[Route("write-action-to-file")]
-	[HttpPost]
-	public IActionResult WriteActionToFile([FromBody] DrawActionDTO drawAction)
-	{
-		if (drawAction == null || drawAction.Vertices == null || drawAction.Vertices.Length == 0 || drawAction.BrushColour == null)
+		if (drawAction == null || drawAction.Vertices == null || drawAction.Vertices.Count == 0)
 		{
 			return BadRequest("Draw action data missing required data.");
 		}
 
+		try
+		{
+			var animationPath = Path.Combine(animationsFolderPath, animationName);
+			var actionsPath = Path.Combine(animationPath, actionsPathName);
+			Directory.CreateDirectory(actionsPath);
 
+			var actionFilePath = Path.Combine(actionsPath, $"Action_Frame_{drawAction.ActionFrame}.json");
+
+			if (!System.IO.File.Exists(actionFilePath))
+			{
+				var drawActionJson = JsonSerializer.SerializeToUtf8Bytes(new List<DrawActionDTO> { drawAction });
+
+				await System.IO.File.WriteAllBytesAsync(actionFilePath, drawActionJson);
+			}
+			else
+			{
+				var existingFile = await System.IO.File.ReadAllBytesAsync(actionFilePath);
+				var deserializedData = JsonSerializer.Deserialize<IEnumerable<DrawActionDTO>>(existingFile);
+
+				await System.IO.File.WriteAllBytesAsync(actionFilePath, JsonSerializer.SerializeToUtf8Bytes(deserializedData?.Append(drawAction)));
+			}
+		}
+		catch
+		{
+			return BadRequest("Failed to write draw action data to file.");
+		}
 
 		return Ok("Draw action data received successfully.");
 	}
 
-	[Route("get-actions/{animationName}")]
+	[Route("actions/{animationName}")]
 	[HttpGet]
 	public async Task<IActionResult> GetActions(string animationName)
 	{
@@ -111,4 +76,71 @@ public class CanvasController : ControllerBase
 		return Ok(allActions);
 	}
 
+	[Route("undo/{animationName}/{frameNumber}")]
+	[HttpPost]
+	public async Task<IActionResult> Undo(string animationName, int frameNumber)
+	{
+		var animationPath = Path.Combine(animationsFolderPath, animationName);
+		var actionsPath = Path.Combine(animationPath, actionsPathName);
+		Directory.CreateDirectory(actionsPath);
+
+		var actionFile = Directory.GetFiles(actionsPath, $"Action_Frame_{frameNumber}.json").FirstOrDefault();
+		if (actionFile == null)
+		{
+			return NotFound($"No actions found for animation: {animationName} at frame: {frameNumber}");
+		}
+
+		try
+		{
+			var fileContent = System.IO.File.ReadAllBytes(actionFile);
+			var actionStack = JsonSerializer.Deserialize<Stack<DrawActionDTO>>(fileContent);
+
+			if (actionStack == null || actionStack.Count == 0)
+			{
+				return BadRequest("No actions to undo.");
+			}
+
+			var undoneAction = actionStack.Pop();
+			await System.IO.File.WriteAllBytesAsync(actionFile, JsonSerializer.SerializeToUtf8Bytes(actionStack));
+			return Ok("Successfully undid last draw action");
+		}
+		catch
+		{
+			return BadRequest("Failed to undo the last action.");
+		}
+	}
+
+	[Route("redo/{animationName}/{frameNumber}")]
+	[HttpPost]
+	public async Task<IActionResult> Redo([FromBody] DrawActionDTO redoneAction, string animationName, int frameNumber)
+	{
+		if (redoneAction == null || redoneAction.Vertices == null || redoneAction.Vertices.Count == 0)
+		{
+			return BadRequest("Redone action data missing required data.");
+		}
+
+		var animationPath = Path.Combine(animationsFolderPath, animationName);
+		var actionsPath = Path.Combine(animationPath, actionsPathName);
+		Directory.CreateDirectory(actionsPath);
+
+		var actionFile = Directory.GetFiles(actionsPath, $"Action_Frame_{frameNumber}.json").FirstOrDefault();
+		if (actionFile == null)
+		{
+			return NotFound($"No actions found for animation: {animationName} at frame: {frameNumber}");
+		}
+
+		try
+		{
+			var fileContent = await System.IO.File.ReadAllBytesAsync(actionFile);
+			var actionStack = JsonSerializer.Deserialize<Stack<DrawActionDTO>>(fileContent) ?? new Stack<DrawActionDTO>();
+			actionStack.Push(redoneAction);
+
+			await System.IO.File.WriteAllBytesAsync(actionFile, JsonSerializer.SerializeToUtf8Bytes(actionStack));
+			return Ok("Successfully redid the draw action");
+		}
+		catch
+		{
+			return BadRequest("Failed to redo the action.");
+		}
+	}
 }

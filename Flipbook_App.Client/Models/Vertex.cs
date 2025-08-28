@@ -1,9 +1,10 @@
 ﻿namespace Flipbook_App.Client.Models;
 
-public class Vertex
+public struct Vertex(float x, float y)
 {
-	public float X { get; set; }
 
-	public float Y { get; set; }
+	public float X { get; set; } = x;
+
+	public float Y { get; set; } = y;
 
 }

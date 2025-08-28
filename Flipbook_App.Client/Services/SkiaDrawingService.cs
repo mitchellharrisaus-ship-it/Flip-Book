@@ -4,10 +4,10 @@ using SkiaSharp;
 
 namespace Flipbook_App.Client.Services;
 
-public class SkiaDrawingService
+public class SkiaDrawingService : ISkiaDrawingService
 {
-	List<List<SKPoint>> Shapes { get; } = [];
-	List<SKPoint> CurrentShape { get; set; } = [];
+	public Stack<DrawActionDTO> Shapes { get; } = [];
+	public DrawActionDTO? CurrentShape { get; set; }
 	
 	public BrushType ActiveBrush { get; set; } = BrushType.Pen;
 	public SKColor BrushColour { get; set; } = SKColors.Black;
@@ -15,12 +15,21 @@ public class SkiaDrawingService
 
 	bool isDrawing;
 
+	Stack<DrawActionDTO> undoneActions = [];
+
 	public void HandlePointerDown(float x, float y)
 	{
 		isDrawing = true;
-		var initialPoint = new SKPoint(x, y);
 
-		CurrentShape = new List<SKPoint> { initialPoint };
+		CurrentShape = new()
+		{
+			Vertices = [new Vertex(x, y)],
+			Brush = ActiveBrush,
+			BrushColour = new Colour(BrushColour),
+			BrushSize = BrushSize,
+		};
+
+		undoneActions.Clear();
 	}
 
 	public void HandlePointerMove(float x, float y)
@@ -30,9 +39,7 @@ public class SkiaDrawingService
 			return;
 		}
 
-		var currentPoint = new SKPoint(x, y);
-
-		CurrentShape.Add(currentPoint);
+		CurrentShape?.Vertices.Add(new Vertex(x, y));
 	}
 
 	public void HandlePointerUp()
@@ -43,78 +50,133 @@ public class SkiaDrawingService
 		}
 	
 		isDrawing = false;
-		Shapes.Add(CurrentShape);
+
+		if (CurrentShape == null)
+		{
+			return;
+		}
+
+		Shapes.Push(CurrentShape);
+		CurrentShape = null;
 	}
 
 	public void Clear()
 	{
 		Shapes.Clear();
-		CurrentShape.Clear();
+		CurrentShape?.Vertices.Clear();
 
 		isDrawing = false;
 	}
 
-	public DrawActionDTO GetDrawAction()
+	public void RecreateAnimation(IEnumerable<Frame> frames)
 	{
-		return new DrawActionDTO() 
+		foreach (var frame in frames)
 		{
-			Vertices = CurrentShape.Select(p => new Vertex { X = p.X, Y = p.Y }).ToArray(),
-			Brush = ActiveBrush,
-			BrushColour = new Colour { A = BrushColour.Alpha, R = BrushColour.Red, G = BrushColour.Green, B = BrushColour.Blue },
-			BrushSize = BrushSize,
-			ActionFrame = 0
-		};
+			foreach (var action in frame.Actions)
+			{
+				BrushColour = new SKColor((byte)action.BrushColour.R, (byte)action.BrushColour.G, (byte)action.BrushColour.B, (byte)action.BrushColour.A);
+				BrushSize = action.BrushSize;
+				ActiveBrush = action.Brush;
+
+				HandlePointerDown(action.Vertices[0].X, action.Vertices[0].Y);
+				foreach (var vertex in action.Vertices.Skip(1))
+				{
+					HandlePointerMove(vertex.X, vertex.Y);
+				}
+				HandlePointerUp();
+			}
+		}
 	}
 
-	public void RecreateAnimation(IEnumerable<DrawActionDTO> actions)
+	public void Undo()
 	{
-		foreach (var action in actions)
+		if (!Shapes.Any())
 		{
-			BrushColour = new SKColor((byte)action.BrushColour.R, (byte)action.BrushColour.G, (byte)action.BrushColour.B, (byte)action.BrushColour.A);
-			BrushSize = action.BrushSize;
-			ActiveBrush = action.Brush;
-
-			HandlePointerDown(action.Vertices[0].X, action.Vertices[0].Y);
-			foreach (var vertex in action.Vertices.Skip(1))
-			{
-				HandlePointerMove(vertex.X, vertex.Y);
-			}
-			HandlePointerUp();
+			return;
 		}
+
+		var lastAction = Shapes.Pop();
+		undoneActions.Push(lastAction);
+	}
+
+	public DrawActionDTO? Redo()
+	{
+		if (!undoneActions.Any())
+		{
+			return null;
+		}
+
+		var actionToRedo = undoneActions.Pop();
+		Shapes.Push(actionToRedo);
+
+		return actionToRedo;
 	}
 
 	public void Draw(SKCanvas canvas)
 	{
 		canvas.Clear(SKColors.White);
 
-		using var paint = new SKPaint
+		foreach (var shape in Shapes)
+		{
+			DrawShape(canvas, shape);
+		}
+
+		if (CurrentShape == null)
+		{
+			return;
+		}
+
+		DrawShape(canvas, CurrentShape);
+	}
+
+	Guid animationID = Guid.Empty;
+	Guid userID = Guid.Empty;
+	string animationTitle = "MY FIRST ANIMATION";
+	int frameIndex = 0;
+	public Animation GetAnimation()
+	{
+		return new Animation
+		{
+			AnimationID = animationID,
+			MetaData = new AnimationMetaData()
+			{
+				UserID = userID,
+				CreatedAt = DateTime.UtcNow,
+				Title = animationTitle
+			},
+			Frames = new List<Frame>
+			{
+				new Frame() { Actions = Shapes, FrameIndex = frameIndex }
+			}
+		};
+	}
+
+	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	{
+		using var paint = GetShapePaint(shape);
+
+		for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
+		{
+			var currentPoint = shape.Vertices[pointIndex];
+			var previousPoint = shape.Vertices[pointIndex - 1];
+
+			canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), paint);
+		}
+	}
+
+	static SKPaint GetShapePaint(DrawActionDTO shape)
+	{
+		var color = new SKColor((byte)shape.BrushColour.R, (byte)shape.BrushColour.G, (byte)shape.BrushColour.B, (byte)shape.BrushColour.A);
+
+		return new SKPaint
 		{
 			Style = SKPaintStyle.Stroke,
 			StrokeCap = SKStrokeCap.Round,
 
-			Color = BrushColour,
-			StrokeWidth = BrushSize,
-			
+			Color = color,
+			StrokeWidth = shape.BrushSize,
+
 			IsAntialias = true
 		};
-
-		foreach (var shape in Shapes)
-		{
-			for (var pointIndex = 1; pointIndex < shape.Count; pointIndex++)
-			{
-				var currentPoint = shape[pointIndex];
-				var previousPoint = shape[pointIndex - 1];
-
-				canvas.DrawLine(previousPoint, currentPoint, paint);
-			}
-		}
-
-		for (var pointIndex = 1; pointIndex < CurrentShape.Count; pointIndex++)
-		{
-			var currentPoint = CurrentShape[pointIndex];
-			var previousPoint = CurrentShape[pointIndex - 1];
-
-			canvas.DrawLine(previousPoint, currentPoint, paint);
-		}
 	}
 }

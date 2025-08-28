@@ -8,6 +8,9 @@
 <button @onclick="ClearCanvas">Clear</button>
 <button @onclick="LoadImage">Load Image</button>
 
+<button class="UndoRedo" @onclick="Undo"> Undo </button>
+<button class="UndoRedo" @onclick="Redo"> Redo </button>
+
 <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
 OnPaintSurface="PaintCanvas"
 IgnorePixelScaling="true"
@@ -20,6 +23,10 @@ style="touch-action: none; width:800px; height:600px;" />
 @code {
     SkiaDrawingService drawingService = new();
     SKCanvasView? canvasView;
+    SKCanvas? canvas;
+
+    const string testAnimationName = "Test Animation"; // TODO: REMOVE ONCE ACTUAL ANIMATIONS IMPLEMENTED
+    const int testAnimationFrame = 0; // TODO: REMOVE ONCE ACTUAL FRAMES IMPLEMENTED
 
     float scaleX = 1f;
     float scaleY = 1f;
@@ -55,13 +62,21 @@ style="touch-action: none; width:800px; height:600px;" />
 
     void PointerUp(PointerEventArgs e)
     {
-        drawingService.HandlePointerUp();
+        if (drawingService.CurrentShape != null)
+        {
+            ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        }
 
-        ApiService.SendDrawAction(drawingService.GetDrawAction(), "My Second Animation");
+        drawingService.HandlePointerUp();
     }
 
     void PointerLeave(PointerEventArgs e)
     {
+        if (drawingService.CurrentShape != null)
+        {
+            ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        }
+
         drawingService.HandlePointerUp();
     }
 
@@ -93,8 +108,31 @@ style="touch-action: none; width:800px; height:600px;" />
 
     async Task LoadImage()
     {
-        var actions = await ApiService.LoadAnimation("My Second Animation");
+        var actions = await ApiService.LoadAnimation(testAnimationName);
         drawingService.RecreateAnimation(actions);
+        RedrawCanvas();
+    }
+
+    void Undo(MouseEventArgs e)
+    {
+        if (drawingService.Shapes.Any())
+        {
+            ApiService.Undo(testAnimationName, testAnimationFrame);
+        }
+
+        drawingService.Undo();
+        RedrawCanvas();
+    }
+
+    void Redo()
+    {
+        var redoneAction = drawingService.Redo();
+        if (redoneAction == null)
+        {
+            return;
+        }
+
+        ApiService.Redo(testAnimationName, testAnimationFrame, redoneAction);
         RedrawCanvas();
     }
 }

@@ -6,8 +6,9 @@ namespace Flipbook_App.Client.Services;
 public class DrawActionApiService
 {
 	const string apiPath = "/api/canvas";
-	const string writeActionToFilePath = $"{apiPath}/write-action-to-file";
-	const string getActionsPath = $"{apiPath}/get-actions";
+	const string actionsPath = $"{apiPath}/actions";
+	const string undoPath = $"{apiPath}/undo";
+	const string redoPath = $"{apiPath}/redo";
 
 	readonly HttpClient httpClient;
 
@@ -16,14 +17,14 @@ public class DrawActionApiService
 		this.httpClient = httpClient;
 	}
 
-	public void SendDrawAction(DrawActionDTO? drawAction, string animationName)
+	public void SendDrawAction(DrawActionDTO drawAction, string animationName)
 	{
-		httpClient.PostAsJsonAsync($"{writeActionToFilePath}/{animationName}", drawAction);
+		httpClient.PostAsJsonAsync($"{actionsPath}/{animationName}", drawAction);
 	}
 
 	public async Task<IEnumerable<DrawActionDTO>> LoadAnimation(string animationName)
 	{
-		var response = await httpClient.GetAsync($"{getActionsPath}/{animationName}");
+		var response = await httpClient.GetAsync($"{actionsPath}/{animationName}");
 
 		if (response.IsSuccessStatusCode)
 		{
@@ -32,5 +33,15 @@ public class DrawActionApiService
 		}
 
 		throw new Exception("Failed to load animation data.");
+	}
+
+	public void Undo(string animationName, int frameNumber)
+	{
+		httpClient.PostAsync($"{undoPath}/{animationName}/{frameNumber}", null);
+	}
+
+	public void Redo(string animationName, int frameNumber, DrawActionDTO redoneAction)
+	{
+		 httpClient.PostAsJsonAsync($"{redoPath}/{animationName}/{frameNumber}", redoneAction);
 	}
 }
