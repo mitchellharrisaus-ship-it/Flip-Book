@@ -1,0 +1,48 @@
+﻿body {
+    background: linear-gradient(120deg, #f6f9fc, #e3f2fd);
+}
+
+.btn-primary:hover {
+    background-color: #0d6efd;
+}
+
+.btn-success:hover {
+    background-color: #28a745;
+}
+
+.project-card {
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-card:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Hero section text */
+.display-4 {
+    line-height: 1.2;
+}
+
+/* Cards for features */
+.card {
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Buttons */
+.btn-primary {
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+}
+
+.btn-lg {
+    font-size: 1.1rem;
+}
