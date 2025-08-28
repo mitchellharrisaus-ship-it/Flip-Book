@@ -109,7 +109,7 @@ style="touch-action: none; width:800px; height:600px;" />
     async Task LoadImage()
     {
         var actions = await ApiService.LoadAnimation(testAnimationName);
-        drawingService.RecreateAnimation(actions);
+        // drawingService.RecreateAnimation(actions);
         RedrawCanvas();
     }
 
