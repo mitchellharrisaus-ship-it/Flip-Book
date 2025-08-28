@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flipbook App", "Flipbook_App.Server\Flipbook App.csproj", "{DF99B8C6-DD04-474A-8E63-C536660D308A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flipbook_App", "Flipbook_App.Server\Flipbook_App.csproj", "{DF99B8C6-DD04-474A-8E63-C536660D308A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flipbook_App.Client", "Flipbook_App.Client\Flipbook_App.Client.csproj", "{EF2B723B-3F4A-45E6-82B9-01613953697A}"
 EndProject
