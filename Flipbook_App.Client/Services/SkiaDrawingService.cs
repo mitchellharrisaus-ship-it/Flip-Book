@@ -6,7 +6,9 @@ namespace Flipbook_App.Client.Services;
 
 public class SkiaDrawingService : ISkiaDrawingService
 {
-	public Stack<DrawActionDTO> Shapes { get; } = [];
+	public List<Frame> Frames { get; } = [];
+
+	public int currentCanvas;
 	public DrawActionDTO? CurrentShape { get; set; }
 	
 	public BrushType ActiveBrush { get; set; } = BrushType.Pen;
@@ -56,46 +58,43 @@ public class SkiaDrawingService : ISkiaDrawingService
 			return;
 		}
 
-		Shapes.Push(CurrentShape);
+		Frames[currentCanvas].Actions.Push(CurrentShape);
 		CurrentShape = null;
 	}
 
 	public void Clear()
 	{
-		Shapes.Clear();
+		Frames[currentCanvas].Actions = [];
 		CurrentShape?.Vertices.Clear();
 
 		isDrawing = false;
 	}
 
-	public void RecreateAnimation(IEnumerable<Frame> frames)
+	public void RecreateCurrentFrame()
 	{
-		foreach (var frame in frames)
+		foreach (var action in Frames[currentCanvas].Actions)
 		{
-			foreach (var action in frame.Actions)
-			{
-				BrushColour = new SKColor((byte)action.BrushColour.R, (byte)action.BrushColour.G, (byte)action.BrushColour.B, (byte)action.BrushColour.A);
-				BrushSize = action.BrushSize;
-				ActiveBrush = action.Brush;
+			BrushColour = new SKColor((byte)action.BrushColour.R, (byte)action.BrushColour.G, (byte)action.BrushColour.B, (byte)action.BrushColour.A);
+			BrushSize = action.BrushSize;
+			ActiveBrush = action.Brush;
 
-				HandlePointerDown(action.Vertices[0].X, action.Vertices[0].Y);
-				foreach (var vertex in action.Vertices.Skip(1))
-				{
-					HandlePointerMove(vertex.X, vertex.Y);
-				}
-				HandlePointerUp();
+			HandlePointerDown(action.Vertices[0].X, action.Vertices[0].Y);
+			foreach (var vertex in action.Vertices.Skip(1))
+			{
+				HandlePointerMove(vertex.X, vertex.Y);
 			}
+			HandlePointerUp();
 		}
 	}
 
 	public void Undo()
 	{
-		if (!Shapes.Any())
+		if (!Frames[currentCanvas].Actions.Any())
 		{
 			return;
 		}
 
-		var lastAction = Shapes.Pop();
+		var lastAction = Frames[currentCanvas].Actions.Pop();
 		undoneActions.Push(lastAction);
 	}
 
@@ -107,7 +106,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 
 		var actionToRedo = undoneActions.Pop();
-		Shapes.Push(actionToRedo);
+		Frames[currentCanvas].Actions.Push(actionToRedo);
 
 		return actionToRedo;
 	}
@@ -116,7 +115,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 	{
 		canvas.Clear(SKColors.White);
 
-		foreach (var shape in Shapes)
+		foreach (var shape in Frames[currentCanvas].Actions)
 		{
 			DrawShape(canvas, shape);
 		}
@@ -146,7 +145,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 			},
 			Frames = new List<Frame>
 			{
-				new Frame() { Actions = Shapes, FrameIndex = frameIndex }
+				new Frame() { Actions = Frames[currentCanvas].Actions, FrameIndex = frameIndex }
 			}
 		};
 	}

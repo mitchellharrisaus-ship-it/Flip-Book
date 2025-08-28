@@ -11,7 +11,7 @@ public interface ISkiaDrawingService
 
 	void HandlePointerMove(float x, float y);
 
-	void RecreateAnimation(IEnumerable<Frame> frames);
+	void RecreateCurrentFrame();
 
 	void Undo();
 
