@@ -3,25 +3,88 @@
 @inject IJSRuntime JSRuntime
 @inject DrawActionApiService ApiService
 
-<h3>SkiaSharp Drawing</h3>
+<div style="margin-bottom: 20px;">
+    <label for="projectName">Name of Project:</label>
+    <input type="text" id="projectName" @bind="ProjectName" style="margin-left: 10px;" />
+</div>
 
-<button @onclick="ClearCanvas">Clear</button>
-<button @onclick="LoadImage">Load Image</button>
+<div class="main-container">
+    <!-- Left Sidebar for Canvas Management -->
+    <div class="canvas-sidebar">
+        <div class="sidebar-header">
+            <h4>Canvases</h4>
+            <button class="add-canvas-btn" @onclick="CreateNewCanvas" title="Add new canvas">
+                <span>+</span>
+            </button>
+        </div>
+        
+        <div class="canvas-list">
+            @for (int i = 0; i < canvasList.Count; i++)
+            {
+                var canvasIndex = i;
+                var canvas = canvasList[i];
+                <div class="canvas-item @(canvasIndex == activeCanvasIndex ? "active" : "")" 
+                     @onclick="() => SelectCanvas(canvasIndex)">
+                    <div class="canvas-thumbnail">
+                        <div class="canvas-number">@(canvasIndex + 1)</div>
+                        <div class="canvas-preview">
+                            <!-- Simplified preview - could be enhanced with actual canvas preview -->
+                            <div class="preview-content">
+                                @if (canvas.Shapes.Any())
+                                {
+                                    <div class="has-content"></div>
+                                }
+                                else
+                                {
+                                    <div class="empty-content">Empty</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="canvas-info">
+                        <div class="canvas-title">Canvas @(canvasIndex + 1)</div>
+                        @if (canvasList.Count > 1)
+                        {
+                            <button class="delete-canvas-btn" @onclick="() => DeleteCanvas(canvasIndex)" 
+                                    @onclick:stopPropagation="true" title="Delete canvas">×</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
 
-<button class="UndoRedo" @onclick="Undo"> Undo </button>
-<button class="UndoRedo" @onclick="Redo"> Redo </button>
+    <!-- Main Canvas Area -->
+    <div class="canvas-area">
+        <h3>SkiaSharp Drawing - Canvas @(activeCanvasIndex + 1)</h3>
 
-<SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
-OnPaintSurface="PaintCanvas"
-IgnorePixelScaling="true"
-@onpointermove="PointerMove"
-@onpointerdown="PointerDown"
-@onpointerup="PointerUp"
-@onpointerleave="PointerLeave"
-style="touch-action: none; width:800px; height:600px;" />
+        <div class="toolbar">
+            <button @onclick="ClearCanvas">Clear</button>
+            <button @onclick="LoadImage">Load Image</button>
+            <button class="UndoRedo" @onclick="Undo"> Undo </button>
+            <button class="UndoRedo" @onclick="Redo"> Redo </button>
+        </div>
+
+        <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
+        OnPaintSurface="PaintCanvas"
+        IgnorePixelScaling="true"
+        @onpointermove="PointerMove"
+        @onpointerdown="PointerDown"
+        @onpointerup="PointerUp"
+        @onpointerleave="PointerLeave"
+        style="touch-action: none; width:800px; height:600px;" />
+    </div>
+</div>
 
 @code {
-    SkiaDrawingService drawingService = new();
+    // Canvas management
+    private List<SkiaDrawingService> canvasList = new();
+    private int activeCanvasIndex = 0;
+	int canvasCounter = 
+    
+    // Current active drawing service
+    private SkiaDrawingService drawingService => canvasList[activeCanvasIndex];
+    
     SKCanvasView? canvasView;
     SKCanvas? canvas;
 
