@@ -13,23 +13,24 @@
     <div class="canvas-sidebar">
         <div class="sidebar-header">
             <h4>Canvases</h4>
-            <button class="add-canvas-btn" @onclick="CreateNewCanvas" title="Add new canvas">
+            <button class="add-canvas-btn" @onclick="CreateNewFrame" title="Add new canvas">
                 <span>+</span>
             </button>
         </div>
-        
+
         <div class="canvas-list">
-            @for (int i = 0; i < canvasCounter; i++)
+            @for (var frameIndex = 0; frameIndex < drawingService.Frames.Count(); frameIndex++)
             {
-                var canvasIndex = i;
-                <div class="canvas-item @(canvasIndex == activeCanvasIndex ? "active" : "")" 
-                     @onclick="() => SelectCanvas(canvasIndex)">
+                var localIndex = frameIndex; <!-- Prevent closure issue on select / delete frames -->
+
+                <div class="canvas-item @(frameIndex == activeFrameIndex ? "active" : "")"
+                     @onclick="() => SelectFrame(localIndex)">
                     <div class="canvas-thumbnail">
-                        <div class="canvas-number">@(canvasIndex + 1)</div>
+                        <div class="canvas-number">@(frameIndex + 1)</div>
                         <div class="canvas-preview">
                             <!-- Simplified preview - could be enhanced with actual canvas preview -->
                             <div class="preview-content">
-                                @if (drawingService.Frames[drawingService.currentCanvas].Actions.Any())
+                                @if (drawingService.Frames[frameIndex].Actions.Any())
                                 {
                                     <div class="has-content"></div>
                                 }
@@ -41,11 +42,11 @@
                         </div>
                     </div>
                     <div class="canvas-info">
-                        <div class="canvas-title">Canvas @(canvasIndex + 1)</div>
-                        @if (canvasList.Count > 1)
+                        <div class="canvas-title">Canvas @(frameIndex + 1)</div>
+                        @if (drawingService.Frames.Count > 1)
                         {
-                            <button class="delete-canvas-btn" @onclick="() => DeleteCanvas(canvasIndex)" 
-                                    @onclick:stopPropagation="true" title="Delete canvas">×</button>
+                            <button class="delete-canvas-btn" @onclick="() => DeleteFrame(localIndex)"
+                            @onclick:stopPropagation="true" title="Delete canvas">×</button>
                         }
                     </div>
                 </div>
@@ -55,7 +56,7 @@
 
     <!-- Main Canvas Area -->
     <div class="canvas-area">
-        <h3>SkiaSharp Drawing - Canvas @(activeCanvasIndex + 1)</h3>
+        <h3>SkiaSharp Drawing - Canvas @(activeFrameIndex + 1)</h3>
 
         <div class="toolbar">
             <button @onclick="ClearCanvas">Clear</button>
@@ -76,19 +77,12 @@
 </div>
 
 @code {
-    // Canvas management
-    private List<SkiaDrawingService> canvasList = new();
-    private int activeCanvasIndex = 1;
-    int canvasCounter = 1;
-
-    // Current active drawing service
-    private SkiaDrawingService drawingService => canvasList[activeCanvasIndex];
-    
+    SkiaDrawingService drawingService = new();
     SKCanvasView? canvasView;
-    SKCanvas? canvas;
+
+    int activeFrameIndex = 0;
 
     const string testAnimationName = "Test Animation"; // TODO: REMOVE ONCE ACTUAL ANIMATIONS IMPLEMENTED
-    const int testAnimationFrame = 0; // TODO: REMOVE ONCE ACTUAL FRAMES IMPLEMENTED
 
     float scaleX = 1f;
     float scaleY = 1f;
@@ -111,37 +105,26 @@
         }
     }
 
-    void CreateNewCanvas()
+    void CreateNewFrame()
     {
-        drawingService.Frames.Add(new() { FrameIndex = drawingService.Frames.Count + 1 });
+        drawingService.CreateFrame();
     }
 
-    void SelectCanvas(int index)
+    void SelectFrame(int index)
     {
-        if (index >= 0 && index < canvasList.Count)
+        if (index >= 0 && index < drawingService.Frames.Count)
         {
-            activeCanvasIndex = index;
-			drawingService.currentCanvas = index;
-            drawingService.RecreateCurrentFrame();
+            activeFrameIndex = index;
+            drawingService.CurrentFrameIndex = index;
             RedrawCanvas();
+            StateHasChanged(); // needed to re-draw ui elements
         }
     }
 
-    void DeleteCanvas(int index)
+    void DeleteFrame(int index)
     {
-        if (canvasList.Count <= 1) return; // Don't delete the last canvas
-
-        canvasList.RemoveAt(index);
-
-        // Adjust active canvas index if necessary
-        if (activeCanvasIndex >= index && activeCanvasIndex > 0)
-        {
-            activeCanvasIndex--;
-        }
-        else if (activeCanvasIndex >= canvasList.Count)
-        {
-            activeCanvasIndex = canvasList.Count - 1;
-        }
+        drawingService.DeleteFrame(index);
+        activeFrameIndex = drawingService.CurrentFrameIndex;
 
         RedrawCanvas();
     }
@@ -159,20 +142,20 @@
 
     void PointerUp(PointerEventArgs e)
     {
-        if (drawingService.CurrentShape != null)
-        {
-            ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        }
+        // if (drawingService.CurrentShape != null)
+        // {
+        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        // }
 
         drawingService.HandlePointerUp();
     }
 
     void PointerLeave(PointerEventArgs e)
     {
-        if (drawingService.CurrentShape != null)
-        {
-            ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        }
+        // if (drawingService.CurrentShape != null)
+        // {
+        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        // }
 
         drawingService.HandlePointerUp();
     }
@@ -214,7 +197,7 @@
     {
         if (drawingService.Frames.Any())
         {
-            ApiService.Undo(testAnimationName, testAnimationFrame);
+            ApiService.Undo(testAnimationName, activeFrameIndex);
         }
 
         drawingService.Undo();
@@ -229,8 +212,7 @@
             return;
         }
 
-        ApiService.Redo(testAnimationName, testAnimationFrame, redoneAction);
+        ApiService.Redo(testAnimationName, activeFrameIndex, redoneAction);
         RedrawCanvas();
     }
 }
-

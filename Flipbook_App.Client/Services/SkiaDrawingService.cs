@@ -6,9 +6,12 @@ namespace Flipbook_App.Client.Services;
 
 public class SkiaDrawingService : ISkiaDrawingService
 {
-	public List<Frame> Frames { get; } = [];
+	public List<Frame> Frames { get; } = [new Frame { FrameIndex = 0 }];
+	
+	public int CurrentFrameIndex { get; set; }
 
-	public int currentCanvas;
+	public Frame CurrentFrame { get => Frames[CurrentFrameIndex]; }
+
 	public DrawActionDTO? CurrentShape { get; set; }
 	
 	public BrushType ActiveBrush { get; set; } = BrushType.Pen;
@@ -58,13 +61,13 @@ public class SkiaDrawingService : ISkiaDrawingService
 			return;
 		}
 
-		Frames[currentCanvas].Actions.Push(CurrentShape);
+		CurrentFrame.Actions.Push(CurrentShape);
 		CurrentShape = null;
 	}
 
 	public void Clear()
 	{
-		Frames[currentCanvas].Actions = [];
+		CurrentFrame.Actions = [];
 		CurrentShape?.Vertices.Clear();
 
 		isDrawing = false;
@@ -72,7 +75,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	public void RecreateCurrentFrame()
 	{
-		foreach (var action in Frames[currentCanvas].Actions)
+		foreach (var action in CurrentFrame.Actions)
 		{
 			BrushColour = new SKColor((byte)action.BrushColour.R, (byte)action.BrushColour.G, (byte)action.BrushColour.B, (byte)action.BrushColour.A);
 			BrushSize = action.BrushSize;
@@ -89,12 +92,12 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	public void Undo()
 	{
-		if (!Frames[currentCanvas].Actions.Any())
+		if (!CurrentFrame.Actions.Any())
 		{
 			return;
 		}
 
-		var lastAction = Frames[currentCanvas].Actions.Pop();
+		var lastAction = CurrentFrame.Actions.Pop();
 		undoneActions.Push(lastAction);
 	}
 
@@ -106,16 +109,46 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 
 		var actionToRedo = undoneActions.Pop();
-		Frames[currentCanvas].Actions.Push(actionToRedo);
+		CurrentFrame.Actions.Push(actionToRedo);
 
 		return actionToRedo;
+	}
+
+	public void CreateFrame()
+	{
+		var newFrame = new Frame { FrameIndex = Frames.Count + 1 };
+		Frames.Add(newFrame);
+	}
+
+	public void DeleteFrame(int frameIndex)
+	{
+		if (Frames.Count <= 1) return; // Don't delete the last canvas
+		if (frameIndex < 0 || frameIndex >= Frames.Count) return; // safety guard
+
+		Frames.RemoveAt(frameIndex);
+
+		// Fix indices
+		if (CurrentFrameIndex >= Frames.Count)
+		{
+			CurrentFrameIndex = Frames.Count - 1;
+		}
+		else if (CurrentFrameIndex > frameIndex)
+		{
+			CurrentFrameIndex--;
+		}
+
+		// Reassign FrameIndex numbers so they match their position
+		for (var i = 0; i < Frames.Count; i++)
+		{
+			Frames[i].FrameIndex = i;
+		}
 	}
 
 	public void Draw(SKCanvas canvas)
 	{
 		canvas.Clear(SKColors.White);
 
-		foreach (var shape in Frames[currentCanvas].Actions)
+		foreach (var shape in CurrentFrame.Actions)
 		{
 			DrawShape(canvas, shape);
 		}
@@ -145,7 +178,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 			},
 			Frames = new List<Frame>
 			{
-				new Frame() { Actions = Frames[currentCanvas].Actions, FrameIndex = frameIndex }
+				new Frame() { Actions = CurrentFrame.Actions, FrameIndex = frameIndex }
 			}
 		};
 	}
