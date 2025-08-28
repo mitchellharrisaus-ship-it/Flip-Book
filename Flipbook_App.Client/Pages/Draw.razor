@@ -114,8 +114,7 @@
 
     void PaintCanvas(SKPaintSurfaceEventArgs e)
     {
-        canvas = e.Surface.Canvas;
-        drawingService.Draw(canvas);
+        drawingService.Draw(e.Surface.Canvas);
     }
 
     void PointerDown(PointerEventArgs e)
