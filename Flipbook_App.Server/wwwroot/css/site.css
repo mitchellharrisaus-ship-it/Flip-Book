@@ -1,5 +1,7 @@
 html {
-  font-size: 14px;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -8,15 +10,73 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
+    background: linear-gradient(120deg, #f6f9fc, #e3f2fd);
+}
+
+/* Hero section text */
+.display-4 {
+    line-height: 1.2;
+}
+
+/* Cards for features */
+.card {
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.project-card {
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+    .project-card:hover {
+        transform: translateY(-6px) scale(1.03);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+
+/* Buttons */
+.btn-primary {
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+}
+
+.btn-lg {
+    font-size: 1.1rem;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+.btn {
+    border: 2px solid transparent; /* reserve space for hover/focus border */
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #0d6efd; /* keep same padding, no size change */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-outline-light {
+    border: 2px solid transparent;
+}
+
+    .btn-outline-light:hover, .btn-outline-light:focus {
+        border-color: white;
+        background-color: rgba(255,255,255,0.2);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+
+.btn-success:hover {
+    background-color: #28a745;
 }

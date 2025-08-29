@@ -11,29 +11,53 @@
 
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
             <div class="container">
                 <a class="navbar-brand" asp-area="" asp-page="/Index">Flipbook App</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Canvas">Canvas</a>
-                        </li>
+
+                @* Get current path as string *@
+                @{
+                    var currentPath = Context.Request.Path.Value ?? "";
+                }
+
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                    <ul class="navbar-nav align-items-center">
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            <li class="nav-item me-3">
+                                <span class="navbar-text fw-semibold">Hello, @User.Identity.Name!</span>
+                            </li>
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-light btn-sm @(currentPath.StartsWith("/Projects") ? "active" : "")" asp-page="/Projects">Projects</a>
+                            </li>
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-light btn-sm @(currentPath.StartsWith("/canvas") ? "active" : "")" href="/Canvas">Canvas</a>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                                    Logout
+                                </button>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-light btn-sm @(currentPath.StartsWith("/Login") ? "active" : "")" asp-page="/Login">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-light btn-sm @(currentPath.StartsWith("/Register") ? "active" : "")" asp-page="/Register">Register</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -42,11 +66,32 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 - Flipbook App - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; 2025 - Flipbook App
         </div>
     </footer>
 
-    <!-- Global Libraries -->
+    <!-- Logout Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    Are you sure you want to log out, <strong>@User.Identity.Name</strong>?
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form method="post" asp-page="/Index" asp-page-handler="Logout" class="d-inline">
+                        <button type="submit" class="btn btn-primary">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="~/lib/p5/p5.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

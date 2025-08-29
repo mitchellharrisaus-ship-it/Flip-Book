@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -5,15 +7,20 @@ namespace Flipbook_App.Pages;
 
 public class IndexModel : PageModel
 {
-	private readonly ILogger<IndexModel> _logger;
-
-	public IndexModel(ILogger<IndexModel> logger)
+	public IActionResult OnGet()
 	{
-		_logger = logger;
+		if (User.Identity?.IsAuthenticated ?? false)
+		{
+			// Redirect logged-in users to Projects
+			return RedirectToPage("/Projects");
+		}
+
+		return Page();
 	}
 
-	public void OnGet()
+	public async Task<IActionResult> OnPostLogout()
 	{
-
+		await HttpContext.SignOutAsync();
+		return RedirectToPage("/Index");
 	}
 }

@@ -1,10 +1,19 @@
-﻿@page "/"
-@model IndexModel
-
+﻿@page
+@model Flipbook_App.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home";
+    ViewData["Title"] = "Welcome";
 }
 
-<h2>Welcome</h2>
+<div class="d-flex flex-column justify-content-center align-items-center vh-100 text-center">
+    <!-- Hero Section -->
+    <h1 class="display-4 fw-bold mb-3">Welcome to Flipbook App</h1>
+    <p class="lead mb-4 px-3" style="max-width: 600px;">
+        Create, manage, and explore your projects with ease. Everything you need in one place.
+    </p>
 
-<a href="/canvas" class="btn btn-primary">Go to Canvas</a>
+    <!-- Action Buttons -->
+    <div>
+        <a class="btn btn-primary btn-lg me-2 mb-2" asp-page="/Register">Get Started</a>
+        <a class="btn btn-outline-primary btn-lg mb-2" asp-page="/Login">Login</a>
+    </div>
+</div>
