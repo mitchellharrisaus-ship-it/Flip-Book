@@ -1,32 +1,92 @@
 ﻿@page "/"
 @using Flipbook_App.Client.Services
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using SkiaSharp
+@using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
 @inject DrawActionApiService ApiService
 
-<h3>SkiaSharp Drawing</h3>
+<div style="margin-bottom: 20px;">
+    <label for="projectName">Name of Project:</label>
+    <input type="text" id="projectName"/>
+</div>
 
-<button @onclick="ClearCanvas">Clear</button>
-<button @onclick="LoadImage">Load Image</button>
+<div class="main-container">
+    <!-- Left Sidebar for Canvas Management -->
+    <div class="canvas-sidebar">
+        <div class="sidebar-header">
+            <h4>Frames</h4>
+            <button class="add-canvas-btn" @onclick="CreateNewFrame" title="Add new canvas">
+                <span>+</span>
+            </button>
+        </div>
 
-<button class="UndoRedo" @onclick="Undo"> Undo </button>
-<button class="UndoRedo" @onclick="Redo"> Redo </button>
+        <div class="canvas-list">
+            @for (var frameIndex = 0; frameIndex < drawingService.Frames.Count(); frameIndex++)
+            {
+                var localIndex = frameIndex; <!-- Prevent closure issue on select / delete frames -->
 
-<SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
-OnPaintSurface="PaintCanvas"
-IgnorePixelScaling="true"
-@onpointermove="PointerMove"
-@onpointerdown="PointerDown"
-@onpointerup="PointerUp"
-@onpointerleave="PointerLeave"
-style="touch-action: none; width:800px; height:600px;" />
+                <div class="canvas-item @(frameIndex == activeFrameIndex ? "active" : "")"
+                     @onclick="() => SelectFrame(localIndex)">
+                    <div class="canvas-thumbnail">
+                        <div class="canvas-number">@(frameIndex + 1)</div>
+                        <div class="canvas-preview">
+                            <!-- Simplified preview - could be enhanced with actual canvas preview -->
+                            <div class="preview-content">
+                                @if (drawingService.Frames[frameIndex].Actions.Any())
+                                {
+                                    <div class="has-content"></div>
+                                }
+                                else
+                                {
+                                    <div class="empty-content">Empty</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="canvas-info">
+                        <div class="canvas-title">Frame @(frameIndex + 1)</div>
+                        @if (drawingService.Frames.Count > 1)
+                        {
+                            <button class="delete-canvas-btn" @onclick="() => DeleteFrame(localIndex)"
+                            @onclick:stopPropagation="true" title="Delete canvas">×</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Canvas Area -->
+    <div class="canvas-area">
+        <h3>Frame @(activeFrameIndex + 1)</h3>
+
+        <div class="toolbar">
+            <button @onclick="ClearCanvas">Clear</button>
+            <button @onclick="LoadImage">Load Image</button>
+            <button class="UndoRedo" @onclick="Undo"> Undo </button>
+            <button class="UndoRedo" @onclick="Redo"> Redo </button>
+        </div>
+
+        <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
+        OnPaintSurface="PaintCanvas"
+        IgnorePixelScaling="true"
+        @onpointermove="PointerMove"
+        @onpointerdown="PointerDown"
+        @onpointerup="PointerUp"
+        @onpointerleave="PointerLeave"
+        style="touch-action: none; width:800px; height:600px;" />
+    </div>
+</div>
 
 @code {
     SkiaDrawingService drawingService = new();
     SKCanvasView? canvasView;
-    SKCanvas? canvas;
+
+    int activeFrameIndex = 0;
 
     const string testAnimationName = "Test Animation"; // TODO: REMOVE ONCE ACTUAL ANIMATIONS IMPLEMENTED
-    const int testAnimationFrame = 0; // TODO: REMOVE ONCE ACTUAL FRAMES IMPLEMENTED
 
     float scaleX = 1f;
     float scaleY = 1f;
@@ -49,6 +109,30 @@ style="touch-action: none; width:800px; height:600px;" />
         }
     }
 
+    void CreateNewFrame()
+    {
+        drawingService.CreateFrame();
+    }
+
+    void SelectFrame(int index)
+    {
+        if (index >= 0 && index < drawingService.Frames.Count)
+        {
+            activeFrameIndex = index;
+            drawingService.CurrentFrameIndex = index;
+            RedrawCanvas();
+            StateHasChanged(); // needed to re-draw ui elements
+        }
+    }
+
+    void DeleteFrame(int index)
+    {
+        drawingService.DeleteFrame(index);
+        activeFrameIndex = drawingService.CurrentFrameIndex;
+
+        RedrawCanvas();
+    }
+
     void PaintCanvas(SKPaintSurfaceEventArgs e)
     {
         drawingService.Draw(e.Surface.Canvas);
@@ -62,20 +146,20 @@ style="touch-action: none; width:800px; height:600px;" />
 
     void PointerUp(PointerEventArgs e)
     {
-        if (drawingService.CurrentShape != null)
-        {
-            ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        }
+        // if (drawingService.CurrentShape != null)
+        // {
+        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        // }
 
         drawingService.HandlePointerUp();
     }
 
     void PointerLeave(PointerEventArgs e)
     {
-        if (drawingService.CurrentShape != null)
-        {
-            ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        }
+        // if (drawingService.CurrentShape != null)
+        // {
+        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        // }
 
         drawingService.HandlePointerUp();
     }
@@ -109,15 +193,15 @@ style="touch-action: none; width:800px; height:600px;" />
     async Task LoadImage()
     {
         var actions = await ApiService.LoadAnimation(testAnimationName);
-        // drawingService.RecreateAnimation(actions);
+        drawingService.RecreateCurrentFrame();
         RedrawCanvas();
     }
 
     void Undo(MouseEventArgs e)
     {
-        if (drawingService.Shapes.Any())
+        if (drawingService.Frames.Any())
         {
-            ApiService.Undo(testAnimationName, testAnimationFrame);
+            ApiService.Undo(testAnimationName, activeFrameIndex);
         }
 
         drawingService.Undo();
@@ -132,8 +216,7 @@ style="touch-action: none; width:800px; height:600px;" />
             return;
         }
 
-        ApiService.Redo(testAnimationName, testAnimationFrame, redoneAction);
+        ApiService.Redo(testAnimationName, activeFrameIndex, redoneAction);
         RedrawCanvas();
     }
 }
-

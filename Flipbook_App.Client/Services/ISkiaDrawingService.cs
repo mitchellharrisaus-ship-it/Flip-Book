@@ -11,11 +11,15 @@ public interface ISkiaDrawingService
 
 	void HandlePointerMove(float x, float y);
 
-	void RecreateAnimation(IEnumerable<Frame> frames);
+	void RecreateCurrentFrame();
 
 	void Undo();
 
 	DrawActionDTO? Redo();
+
+	void CreateFrame();
+
+	void DeleteFrame(int frameIndex);
 
 	void Draw(SKCanvas canvas);
 
