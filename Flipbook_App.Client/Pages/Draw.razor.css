@@ -8,16 +8,16 @@
     margin-top: 10px;
 }
 
-.UndoRedo:hover {
-    cursor: grab;
-    background-color: #00ff90;
-}
+    .UndoRedo:hover {
+        cursor: grab;
+        background-color: #00ff90;
+    }
 
-.UndoRedo:active {
-    cursor: grabbing;
-    background-color: #06a51a;
+    .UndoRedo:active {
+        cursor: grabbing;
+        background-color: #06a51a;
+    }
 
-}
 .main-container {
     display: flex;
     height: 100vh;

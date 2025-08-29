@@ -1,5 +1,9 @@
 ﻿@page "/"
 @using Flipbook_App.Client.Services
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using SkiaSharp
+@using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
 @inject DrawActionApiService ApiService
 
@@ -12,7 +16,7 @@
     <!-- Left Sidebar for Canvas Management -->
     <div class="canvas-sidebar">
         <div class="sidebar-header">
-            <h4>Canvases</h4>
+            <h4>Frames</h4>
             <button class="add-canvas-btn" @onclick="CreateNewFrame" title="Add new canvas">
                 <span>+</span>
             </button>
@@ -42,7 +46,7 @@
                         </div>
                     </div>
                     <div class="canvas-info">
-                        <div class="canvas-title">Canvas @(frameIndex + 1)</div>
+                        <div class="canvas-title">Frame @(frameIndex + 1)</div>
                         @if (drawingService.Frames.Count > 1)
                         {
                             <button class="delete-canvas-btn" @onclick="() => DeleteFrame(localIndex)"
@@ -56,7 +60,7 @@
 
     <!-- Main Canvas Area -->
     <div class="canvas-area">
-        <h3>SkiaSharp Drawing - Canvas @(activeFrameIndex + 1)</h3>
+        <h3>Frame @(activeFrameIndex + 1)</h3>
 
         <div class="toolbar">
             <button @onclick="ClearCanvas">Clear</button>
