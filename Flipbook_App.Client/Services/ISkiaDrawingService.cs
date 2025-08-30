@@ -17,11 +17,11 @@ public interface ISkiaDrawingService
 
 	DrawActionDTO? Redo();
 
-	void CreateFrame();
+	void LoadAnimation(Animation? animation);
+
+	void CreateFrame(Frame? givenFrame = null);
 
 	void DeleteFrame(int frameIndex);
 
 	void Draw(SKCanvas canvas);
-
-	Animation GetAnimation();
 }

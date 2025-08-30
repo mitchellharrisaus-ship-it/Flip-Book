@@ -1,6 +1,8 @@
 ﻿using Flipbook_App.Models.DTOs;
+using Flipbook_App.Repositories;
+using Flipbook_App.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
 namespace Flipbook_App.Controllers;
 
@@ -8,139 +10,106 @@ namespace Flipbook_App.Controllers;
 [Route("api/[controller]")]
 public class CanvasController : ControllerBase
 {
-	readonly string animationsFolderPath = "Animations";
-	readonly string actionsPathName = "Actions";
+	IBlobStorageService blobService;
+	RepositoryManager repositoryManager;
 
-	[Route("actions/{animationName}")]
-	[HttpPost]
-	public async Task<IActionResult> WriteActionToFile([FromBody] DrawActionDTO drawAction, string animationName)
+	public CanvasController(IBlobStorageService blobService, RepositoryManager repositoryManager)
 	{
-		if (drawAction == null || drawAction.Vertices == null || drawAction.Vertices.Count == 0)
-		{
-			return BadRequest("Draw action data missing required data.");
-		}
-
-		try
-		{
-			var animationPath = Path.Combine(animationsFolderPath, animationName);
-			var actionsPath = Path.Combine(animationPath, actionsPathName);
-			Directory.CreateDirectory(actionsPath);
-
-			var actionFilePath = Path.Combine(actionsPath, $"Action_Frame_{drawAction.ActionFrame}.json");
-
-			if (!System.IO.File.Exists(actionFilePath))
-			{
-				var drawActionJson = JsonSerializer.SerializeToUtf8Bytes(new List<DrawActionDTO> { drawAction });
-
-				await System.IO.File.WriteAllBytesAsync(actionFilePath, drawActionJson);
-			}
-			else
-			{
-				var existingFile = await System.IO.File.ReadAllBytesAsync(actionFilePath);
-				var deserializedData = JsonSerializer.Deserialize<IEnumerable<DrawActionDTO>>(existingFile);
-
-				await System.IO.File.WriteAllBytesAsync(actionFilePath, JsonSerializer.SerializeToUtf8Bytes(deserializedData?.Append(drawAction)));
-			}
-		}
-		catch
-		{
-			return BadRequest("Failed to write draw action data to file.");
-		}
-
-		return Ok("Draw action data received successfully.");
+		this.blobService = blobService ?? throw new ArgumentNullException(nameof(blobService));
+		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
 	}
 
-	[Route("actions/{animationName}")]
+	[Route("save/{animationTitle}")]
+	[HttpPost]
+	[Authorize]
+	public async Task<IActionResult> SaveAnimation([FromBody] IEnumerable<Frame> animationFrames, string animationTitle)
+	{
+		var loggedInUser = User?.Identity?.Name;
+		if (loggedInUser == null) return Unauthorized("User must be logged in to save animations.");
+		
+		try
+		{
+			var user = repositoryManager.Users.GetByUsername(loggedInUser);
+			if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}");
+
+			var existingAnimationReference = repositoryManager.Animations.GetByTitleAndUserID(animationTitle, user.Id);
+
+			var animation = new Animation
+			{
+				AnimationID = existingAnimationReference?.AnimationID ?? Guid.NewGuid(),
+				Frames = animationFrames.ToList(),
+				MetaData = new AnimationMetaData
+				{
+					UserID = user.Id,
+				}
+			};
+
+			await blobService.UploadAnimation(animation);
+			repositoryManager.Animations.CreateIfNotExists(animation, animationTitle);
+
+			await repositoryManager.SaveChangesAsync();
+		}
+		catch (Exception ex)
+		{
+			return BadRequest($"Failed to upload animation: {ex.Message}");
+		}
+
+		return Ok("Successfully saved animation");
+	}
+
+	[Route("load/{animationID}")]
 	[HttpGet]
-	public async Task<IActionResult> GetActions(string animationName)
+	[Authorize]
+	public async Task<IActionResult> LoadAnimation(string animationID)
 	{
-		var animationPath = Path.Combine(animationsFolderPath, animationName);
-		var actionsPath = Path.Combine(animationPath, actionsPathName);
-		if (!Directory.Exists(actionsPath))
+		try
 		{
-			return NotFound("No actions found for the specified animation.");
+			var downloadedAnimation = await blobService.DownloadAnimation(Guid.Parse(animationID));
+		
+			return Ok(downloadedAnimation);
 		}
-
-		var actionFiles = Directory.GetFiles(actionsPath, "Action_Frame_*.json");
-		var allActions = new List<DrawActionDTO>();
-		foreach (var file in actionFiles)
+		catch (Exception ex)
 		{
-			var fileContent = await System.IO.File.ReadAllBytesAsync(file);
-			var actions = JsonSerializer.Deserialize<IEnumerable<DrawActionDTO>>(fileContent);
-			if (actions != null)
-			{
-				allActions.AddRange(actions);
-			}
+			return BadRequest($"Failed to download animation: {ex.Message}");
 		}
-
-		return Ok(allActions);
 	}
 
-	[Route("undo/{animationName}/{frameNumber}")]
-	[HttpPost]
-	public async Task<IActionResult> Undo(string animationName, int frameNumber)
+	[Route("title/{currentTitle}")]
+	[HttpGet]
+	[Authorize]
+	public IActionResult EnsureValidTitle(string currentTitle)
 	{
-		var animationPath = Path.Combine(animationsFolderPath, animationName);
-		var actionsPath = Path.Combine(animationPath, actionsPathName);
-		Directory.CreateDirectory(actionsPath);
-
-		var actionFile = Directory.GetFiles(actionsPath, $"Action_Frame_{frameNumber}.json").FirstOrDefault();
-		if (actionFile == null)
-		{
-			return NotFound($"No actions found for animation: {animationName} at frame: {frameNumber}");
-		}
+		var loggedInUser = User?.Identity?.Name;
+		if (loggedInUser == null) return Unauthorized("User must be logged in to generate animation titles.");
 
 		try
 		{
-			var fileContent = System.IO.File.ReadAllBytes(actionFile);
-			var actionStack = JsonSerializer.Deserialize<Stack<DrawActionDTO>>(fileContent);
+			var user = repositoryManager.Users.GetByUsername(loggedInUser);
+			if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}");
 
-			if (actionStack == null || actionStack.Count == 0)
+			var validTitle = currentTitle;
+			var suffix = 1;
+
+			while (repositoryManager.Animations.GetByTitleAndUserID(validTitle, user.Id) != null)
 			{
-				return BadRequest("No actions to undo.");
+				validTitle = $"{currentTitle} ({suffix})";
+				suffix++;
 			}
 
-			var undoneAction = actionStack.Pop();
-			await System.IO.File.WriteAllBytesAsync(actionFile, JsonSerializer.SerializeToUtf8Bytes(actionStack));
-			return Ok("Successfully undid last draw action");
+			return Ok(validTitle);
 		}
-		catch
+		catch (Exception ex)
 		{
-			return BadRequest("Failed to undo the last action.");
+			return BadRequest($"Failed to generate valid title: {ex.Message}");
 		}
 	}
 
-	[Route("redo/{animationName}/{frameNumber}")]
+	[Route("title/{animationID}/{newTitle}")]
 	[HttpPost]
-	public async Task<IActionResult> Redo([FromBody] DrawActionDTO redoneAction, string animationName, int frameNumber)
+	[Authorize]
+	public async Task<IActionResult> RenameAnimation(string animationID, string newTitle)
 	{
-		if (redoneAction == null || redoneAction.Vertices == null || redoneAction.Vertices.Count == 0)
-		{
-			return BadRequest("Redone action data missing required data.");
-		}
-
-		var animationPath = Path.Combine(animationsFolderPath, animationName);
-		var actionsPath = Path.Combine(animationPath, actionsPathName);
-		Directory.CreateDirectory(actionsPath);
-
-		var actionFile = Directory.GetFiles(actionsPath, $"Action_Frame_{frameNumber}.json").FirstOrDefault();
-		if (actionFile == null)
-		{
-			return NotFound($"No actions found for animation: {animationName} at frame: {frameNumber}");
-		}
-
-		try
-		{
-			var fileContent = await System.IO.File.ReadAllBytesAsync(actionFile);
-			var actionStack = JsonSerializer.Deserialize<Stack<DrawActionDTO>>(fileContent) ?? new Stack<DrawActionDTO>();
-			actionStack.Push(redoneAction);
-
-			await System.IO.File.WriteAllBytesAsync(actionFile, JsonSerializer.SerializeToUtf8Bytes(actionStack));
-			return Ok("Successfully redid the draw action");
-		}
-		catch
-		{
-			return BadRequest("Failed to redo the action.");
-		}
+		throw new NotImplementedException();
 	}
+
 }

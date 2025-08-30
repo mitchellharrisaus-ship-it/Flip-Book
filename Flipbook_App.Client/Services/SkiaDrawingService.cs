@@ -20,7 +20,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	bool isDrawing;
 
-	Stack<DrawActionDTO> undoneActions = [];
+	IList<Stack<DrawActionDTO>> undoneActions = [];
 
 	public void HandlePointerDown(float x, float y)
 	{
@@ -34,7 +34,15 @@ public class SkiaDrawingService : ISkiaDrawingService
 			BrushSize = BrushSize,
 		};
 
-		undoneActions.Clear();
+		if (undoneActions.ElementAtOrDefault(CurrentFrameIndex) == null)
+		{
+			undoneActions.Add(new Stack<DrawActionDTO>());
+		}
+		else
+		{
+			// Clear redo stack if we start a new action
+			undoneActions[CurrentFrameIndex].Clear();
+		}
 	}
 
 	public void HandlePointerMove(float x, float y)
@@ -98,25 +106,54 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 
 		var lastAction = CurrentFrame.Actions.Pop();
-		undoneActions.Push(lastAction);
+		undoneActions[CurrentFrameIndex].Push(lastAction);
 	}
 
 	public DrawActionDTO? Redo()
 	{
-		if (!undoneActions.Any())
+		if (undoneActions.ElementAtOrDefault(CurrentFrameIndex) == null || !undoneActions[CurrentFrameIndex].Any())
 		{
 			return null;
 		}
 
-		var actionToRedo = undoneActions.Pop();
+		var actionToRedo = undoneActions[CurrentFrameIndex].Pop();
 		CurrentFrame.Actions.Push(actionToRedo);
 
 		return actionToRedo;
 	}
 
-	public void CreateFrame()
+	public void LoadAnimation(Animation? animation)
 	{
-		var newFrame = new Frame { FrameIndex = Frames.Count + 1 };
+		if (animation == null || animation.Frames == null || !animation.Frames.Any())
+		{
+			throw new ArgumentNullException(nameof(animation));
+		}
+
+		// reinitialise
+		Frames.Clear();
+		undoneActions.Clear();
+
+		foreach (var frame in animation.Frames)
+		{
+			CreateFrame(frame);
+		}
+		
+		if (CurrentFrameIndex >= animation.Frames.Count)
+		{
+			CurrentFrameIndex = animation.Frames.Count - 1;
+		}
+	}
+
+	public void CreateFrame(Frame? givenFrame = null)
+	{
+		if (givenFrame != null)
+		{
+			Frames.Add(givenFrame);
+			return;
+		}
+
+		// Create a new blank frame
+		var newFrame = new Frame { FrameIndex = Frames.Count };
 		Frames.Add(newFrame);
 	}
 
@@ -126,6 +163,12 @@ public class SkiaDrawingService : ISkiaDrawingService
 		if (frameIndex < 0 || frameIndex >= Frames.Count) return; // safety guard
 
 		Frames.RemoveAt(frameIndex);
+
+		// Sync undo / redo stacks
+		if (undoneActions.ElementAtOrDefault(frameIndex) != null)
+		{
+			undoneActions.RemoveAt(frameIndex);
+		}
 
 		// Fix indices
 		if (CurrentFrameIndex >= Frames.Count)
@@ -159,28 +202,6 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 
 		DrawShape(canvas, CurrentShape);
-	}
-
-	Guid animationID = Guid.Empty;
-	Guid userID = Guid.Empty;
-	string animationTitle = "MY FIRST ANIMATION";
-	int frameIndex = 0;
-	public Animation GetAnimation()
-	{
-		return new Animation
-		{
-			AnimationID = animationID,
-			MetaData = new AnimationMetaData()
-			{
-				UserID = userID,
-				CreatedAt = DateTime.UtcNow,
-				Title = animationTitle
-			},
-			Frames = new List<Frame>
-			{
-				new Frame() { Actions = CurrentFrame.Actions, FrameIndex = frameIndex }
-			}
-		};
 	}
 
 	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)

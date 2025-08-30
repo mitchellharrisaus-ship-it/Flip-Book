@@ -1,5 +1,3 @@
-using FlipbookApp.Data;
-using FlipbookApp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -8,16 +6,18 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Flipbook_App.Repositories;
+using Flipbook_App.Models;
 
-namespace FlipbookApp.Pages;
+namespace Flipbook_App.Pages;
 
 public class RegisterModel : PageModel
 {
-	private readonly AppDbContext _db;
+	private readonly RepositoryManager repositoryManager;
 
-	public RegisterModel(AppDbContext db)
+	public RegisterModel(RepositoryManager repositoryManager)
 	{
-		_db = db;
+		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
 	}
 
 	[BindProperty]
@@ -41,7 +41,7 @@ public class RegisterModel : PageModel
 			return Page();
 
 		// Check for unique username
-		if (_db.Users.Any(u => u.Username == Input.Username))
+		if (repositoryManager.Users.GetByUsername(Input.Username) != null)
 		{
 			ModelState.AddModelError("Input.Username", "Username is already taken.");
 			return Page();
@@ -62,8 +62,8 @@ public class RegisterModel : PageModel
 			PasswordHash = $"{Convert.ToBase64String(salt)}:{hash}"
 		};
 
-		_db.Users.Add(user);
-		await _db.SaveChangesAsync();
+		repositoryManager.Users.Add(user);
+		await repositoryManager.SaveChangesAsync();
 
 		// Auto-login
 		var claims = new List<Claim>

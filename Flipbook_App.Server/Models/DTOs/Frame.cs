@@ -4,5 +4,5 @@ public class Frame
 {
 	public required int FrameIndex { get; set; }
 
-	public required Stack<DrawActionDTO> Actions { get; set; }
+	public Stack<DrawActionDTO> Actions { get; set; } = [];
 }

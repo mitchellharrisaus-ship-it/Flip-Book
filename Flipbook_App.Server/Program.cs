@@ -1,47 +1,80 @@
-using FlipbookApp.Data;
+using Flipbook_App.Controllers;
+using Flipbook_App.Data;
+using Flipbook_App.Repositories.Interfaces;
+using Flipbook_App.Repositories;
+using Flipbook_App.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
-builder.Services.AddControllers();
-
-// Register cookie authentication
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-	.AddCookie(options =>
-	{
-		options.LoginPath = "/Login";   // redirect here if not logged in
-		options.LogoutPath = "/Logout"; // optional
-		options.ExpireTimeSpan = TimeSpan.FromHours(1);
-	});
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-	options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+// --- Service Registration ---
+ConfigureServices(builder.Services, builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-	app.UseExceptionHandler("/Error");
-	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-	app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseBlazorFrameworkFiles("/canvas");
-
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-app.MapRazorPages();
-app.MapFallbackToFile("/canvas/{*path}", "canvas/index.html");
+// --- Middleware Pipeline ---
+ConfigureMiddleware(app);
 
 app.Run();
+
+// Service Registration
+static void ConfigureServices(IServiceCollection services, IConfiguration config)
+{
+	// Razor Pages & Controllers
+	services.AddRazorPages();
+	services.AddControllers();
+
+	// Authentication
+	services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+		.AddCookie(options =>
+		{
+			options.LoginPath = "/Login";
+			options.LogoutPath = "/Logout";
+			options.ExpireTimeSpan = TimeSpan.FromHours(1);
+		});
+
+	// Database Context
+	services.AddDbContext<FlipbookDBContext>(options =>
+		options.UseSqlServer(config.GetConnectionString("Flipbook_DB")));
+
+	// Repositories
+	services.AddScoped<IUserRepository, UserRepository>();
+	services.AddScoped<IAnimationRepository, AnimationRepository>();
+	// Unit of work
+	services.AddScoped<RepositoryManager>();
+
+	services.AddSingleton<IBlobStorageService>(sp =>
+	{
+		var connectionString = config.GetValue<string>("AzureStorage:ConnectionString");
+		var containerName = config.GetValue<string>("AzureStorage:ContainerName");
+		return new BlobStorageService(connectionString, containerName);
+	});
+
+	services.AddScoped<CanvasController>();
+
+
+}
+
+// Middleware Pipeline
+static void ConfigureMiddleware(WebApplication app)
+{
+	if (!app.Environment.IsDevelopment())
+	{
+		app.UseExceptionHandler("/Error");
+		app.UseHsts();
+	}
+
+	app.UseHttpsRedirection();
+	app.UseStaticFiles();
+	app.UseBlazorFrameworkFiles("/canvas");
+
+	app.UseRouting();
+
+	app.UseAuthentication();
+	app.UseAuthorization();
+
+	app.MapControllers();
+	app.MapRazorPages();
+	app.MapFallbackToFile("/canvas/{*path}", "canvas/index.html");
+}

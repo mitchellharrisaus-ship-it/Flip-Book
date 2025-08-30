@@ -3,12 +3,13 @@ using System.Net.Http.Json;
 
 namespace Flipbook_App.Client.Services;
 
-public class DrawActionApiService
+public class DrawActionApiService : IDrawActionApiService
 {
 	const string apiPath = "/api/canvas";
-	const string actionsPath = $"{apiPath}/actions";
-	const string undoPath = $"{apiPath}/undo";
-	const string redoPath = $"{apiPath}/redo";
+
+	const string savePath = $"{apiPath}/save";
+	const string titlePath = $"{apiPath}/title";
+	const string loadPath = $"{apiPath}/load";
 
 	readonly HttpClient httpClient;
 
@@ -17,31 +18,28 @@ public class DrawActionApiService
 		this.httpClient = httpClient;
 	}
 
-	public void SendDrawAction(DrawActionDTO drawAction, string animationName)
+	public async Task<string> EnsureValidTitle(string currentTitle)
 	{
-		httpClient.PostAsJsonAsync($"{actionsPath}/{animationName}", drawAction);
+		var response = await httpClient.GetStringAsync($"{titlePath}/{currentTitle}");
+
+		return response;
 	}
 
-	public async Task<IEnumerable<DrawActionDTO>> LoadAnimation(string animationName)
+	public async Task Save(IEnumerable<Frame> animationFrames, string animationTitle)
 	{
-		var response = await httpClient.GetAsync($"{actionsPath}/{animationName}");
+		await httpClient.PostAsJsonAsync($"{savePath}/{animationTitle}", animationFrames);
+	}
 
-		if (response.IsSuccessStatusCode)
+	public async Task<Animation> Load(Guid animationID)
+	{
+		var response = await httpClient.GetAsync($"{loadPath}/{animationID}");
+
+		if (!response.IsSuccessStatusCode)
 		{
-			var actions = await response.Content.ReadFromJsonAsync<IEnumerable<DrawActionDTO>>();
-			return actions ?? throw new Exception("Failed to load animation data.");
+			throw new Exception("Failed to load animation data.");
 		}
 
-		throw new Exception("Failed to load animation data.");
-	}
-
-	public void Undo(string animationName, int frameNumber)
-	{
-		httpClient.PostAsync($"{undoPath}/{animationName}/{frameNumber}", null);
-	}
-
-	public void Redo(string animationName, int frameNumber, DrawActionDTO redoneAction)
-	{
-		 httpClient.PostAsJsonAsync($"{redoPath}/{animationName}/{frameNumber}", redoneAction);
+		var animation = await response.Content.ReadFromJsonAsync<Animation>();
+		return animation ?? throw new NullReferenceException("Animation data was null.");
 	}
 }
