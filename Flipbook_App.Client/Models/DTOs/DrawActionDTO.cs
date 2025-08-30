@@ -11,4 +11,6 @@ public class DrawActionDTO
 	public int BrushSize { get; set; }
 
 	public int ActionFrame { get; set; }
+
+	public bool IsPhysicsObject { get; set; } = false;
 }
