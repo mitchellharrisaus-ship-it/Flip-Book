@@ -1,4 +1,4 @@
-﻿using Flipbook_App.Client.Models.DTOs;
+﻿using FlipBook_Library.DTOs;
 using System.Net.Http.Json;
 
 namespace Flipbook_App.Client.Services;

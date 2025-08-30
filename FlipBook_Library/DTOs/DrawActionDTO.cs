@@ -1,4 +1,6 @@
-﻿namespace Flipbook_App.Client.Models.DTOs;
+﻿using FlipBook_Library.Core;
+
+namespace FlipBook_Library.DTOs;
 
 public class DrawActionDTO
 {
@@ -13,4 +15,6 @@ public class DrawActionDTO
 	public int ActionFrame { get; set; }
 
 	public bool IsPhysicsObject { get; set; } = false;
+
+	public PhysicsObjectSettings? PhysicsSettings { get; set; }
 }

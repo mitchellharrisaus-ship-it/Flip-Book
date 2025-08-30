@@ -1,5 +1,5 @@
-using Flipbook_App.Client.Models;
-using Flipbook_App.Client.Models.DTOs;
+using FlipBook_Library.Core;
+using FlipBook_Library.DTOs;
 using SkiaSharp;
 
 namespace Flipbook_App.Client.Services;
@@ -18,12 +18,19 @@ public class SkiaDrawingService : ISkiaDrawingService
 	public SKColor BrushColour { get; set; } = SKColors.Black;
 	public int BrushSize { get; set; } = 2;
 
+	public bool IsPhysicsEnabled { get; set; } = false;
+	public bool PhysicsAppliesOnShapes { get; set; } = false;
+	public bool IsDrawingEnabled { get; set; } = true;
+	public PhysicsSettings? CurrentPhysicsSettings { get; set; }
+
 	bool isDrawing;
 
 	Stack<DrawActionDTO> undoneActions = [];
 
 	public void HandlePointerDown(float x, float y)
 	{
+		if (!IsDrawingEnabled) return;
+
 		isDrawing = true;
 
 		CurrentShape = new()
@@ -32,6 +39,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 			Brush = ActiveBrush,
 			BrushColour = new Colour(BrushColour),
 			BrushSize = BrushSize,
+			IsPhysicsObject = IsPhysicsEnabled && PhysicsAppliesOnShapes
 		};
 
 		undoneActions.Clear();
@@ -39,17 +47,34 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	public void HandlePointerMove(float x, float y)
 	{
-		if (!isDrawing)
+		if (!IsDrawingEnabled || !isDrawing)
 		{
 			return;
 		}
 
-		CurrentShape?.Vertices.Add(new Vertex(x, y));
+		if (ActiveBrush == BrushType.Circle)
+		{
+			// For circles, we only need start and current point to define the radius
+			if (CurrentShape?.Vertices.Count == 1)
+			{
+				CurrentShape.Vertices.Add(new Vertex(x, y));
+			}
+			else if (CurrentShape?.Vertices.Count == 2)
+			{
+				// Update the second point (radius endpoint)
+				CurrentShape.Vertices[1] = new Vertex(x, y);
+			}
+		}
+		else
+		{
+			// Regular pen drawing
+			CurrentShape?.Vertices.Add(new Vertex(x, y));
+		}
 	}
 
 	public void HandlePointerUp()
 	{
-		if (!isDrawing)
+		if (!IsDrawingEnabled || !isDrawing)
 		{
 			return;
 		}
@@ -187,12 +212,61 @@ public class SkiaDrawingService : ISkiaDrawingService
 	{
 		using var paint = GetShapePaint(shape);
 
-		for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
+		if (shape.Brush == BrushType.Circle && shape.Vertices.Count >= 2)
 		{
-			var currentPoint = shape.Vertices[pointIndex];
-			var previousPoint = shape.Vertices[pointIndex - 1];
+			// Draw circle
+			var center = shape.Vertices[0];
+			var radiusPoint = shape.Vertices[1];
+			var radius = (float)Math.Sqrt(
+				Math.Pow(radiusPoint.X - center.X, 2) + 
+				Math.Pow(radiusPoint.Y - center.Y, 2)
+			);
 
-			canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), paint);
+			canvas.DrawCircle(center.X, center.Y, radius, paint);
+
+			// Only draw physics indicator if it's a physics object
+			if (shape.IsPhysicsObject)
+			{
+				using var physicsPaint = new SKPaint
+				{
+					Style = SKPaintStyle.Stroke,
+					Color = SKColors.Orange,
+					StrokeWidth = 1,
+					PathEffect = SKPathEffect.CreateDash([3, 3], 0)
+				};
+				canvas.DrawCircle(center.X, center.Y, radius + 2, physicsPaint);
+			}
+		}
+		else
+		{
+			// Draw lines (pen)
+			for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
+			{
+				var currentPoint = shape.Vertices[pointIndex];
+				var previousPoint = shape.Vertices[pointIndex - 1];
+
+				canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), paint);
+			}
+
+			// Only draw physics indicator for pen strokes if it's a physics object
+			if (shape.IsPhysicsObject && shape.Vertices.Count > 1)
+			{
+				using var physicsPaint = new SKPaint
+				{
+					Style = SKPaintStyle.Stroke,
+					Color = SKColors.Orange,
+					StrokeWidth = 1,
+					PathEffect = SKPathEffect.CreateDash([2, 2], 0)
+				};
+
+				for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
+				{
+					var currentPoint = shape.Vertices[pointIndex];
+					var previousPoint = shape.Vertices[pointIndex - 1];
+
+					canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), physicsPaint);
+				}
+			}
 		}
 	}
 

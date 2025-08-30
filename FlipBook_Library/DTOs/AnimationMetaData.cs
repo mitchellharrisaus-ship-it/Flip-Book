@@ -1,4 +1,4 @@
-﻿namespace Flipbook_App.Models.DTOs;
+﻿namespace FlipBook_Library.DTOs;
 
 public class AnimationMetaData
 {

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FlipbookApp.Models;
+namespace FlipBook_Library.Core;
 
 public class User
 {

@@ -1,4 +1,4 @@
-﻿using Flipbook_App.Models.DTOs;
+﻿using FlipBook_Library.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -143,4 +143,16 @@ public class CanvasController : ControllerBase
 			return BadRequest("Failed to redo the action.");
 		}
 	}
+
+	//[Route("GenerateFrames")]
+	//[HttpPost]
+	//public async Task<IActionResult> GenerateFrames([FromBody] List<Frame> Frames, PhysicsSettings physicsSettings)
+	//{
+	//	if (physicsSettings == null || Frames == null || Frames.Count == 0)
+	//	{
+	//		return BadRequest("Missing required data.");
+	//	}
+
+	//	//Calls Frame Generator Service to generate frames with physics applied
+	//}
 }

@@ -17,6 +17,7 @@
   <ItemGroup>
     <None Include="$(SolutionDir).editorconfig" />
     <None Include="$(SolutionDir).gitignore" />
+    <None Include="Flipbook_App.Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,10 +33,17 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\FlipBook_Library\FlipBook_App.Shared.csproj" />
   </ItemGroup>
   
   <ItemGroup>
     <Folder Include="Animations\" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="Flipbook_App.Client">
+      <HintPath>..\Flipbook_App.Client\bin\Debug\net8.0\Flipbook_App.Client.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <Target Name="CopyClientBlazorApp" AfterTargets="Build">
@@ -47,9 +55,9 @@
     </PropertyGroup>
 
     <!-- Publish the client to a temporary folder -->
-	<Exec Command="dotnet publish &quot;$(ClientProject)&quot; -c $(Configuration) -o &quot;$(ClientPublishTemp)&quot; --no-build" />
+	<Exec Command="dotnet publish &quot;$(ClientProject)&quot; -c $(Configuration) -o &quot;$(ClientPublishTemp)&quot;" />
 
-	<!-- Delete old canvas folder if exists -->
+    <!-- Delete old canvas folder if exists -->
     <RemoveDir Directories="$(ServerCanvas)" />
 
     <!-- Create canvas folder -->
@@ -64,6 +72,5 @@
     <!-- Delete temporary folder -->
     <RemoveDir Directories="$(ClientPublishTemp)" />
   </Target>
-
 
 </Project>

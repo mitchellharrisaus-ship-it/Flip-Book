@@ -1,4 +1,4 @@
-﻿using FlipbookApp.Models;
+﻿using FlipBook_Library.Core;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 
