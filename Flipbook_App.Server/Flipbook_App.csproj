@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" />
+    <ProjectReference Include="..\FlipBook_Library\FlipBook_App.Shared.csproj" />
   </ItemGroup>
 
   <!-- Copy Blazor client build output to wwwroot after build -->
@@ -52,5 +53,6 @@
     <!-- Cleanup -->
     <RemoveDir Directories="$(ClientPublishTemp)" />
   </Target>
+
 
 </Project>

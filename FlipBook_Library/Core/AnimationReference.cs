@@ -1,8 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using FlipBook_Library.Core;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace Flipbook_App.Models;
-
+namespace FlipBook_App.Shared.Core;
 public class AnimationReference
 {
 	[Key]

@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using FlipBook_Library.Core;
 using Flipbook_App.Repositories;
-using Flipbook_App.Models;
 
 namespace Flipbook_App.Pages;
 
