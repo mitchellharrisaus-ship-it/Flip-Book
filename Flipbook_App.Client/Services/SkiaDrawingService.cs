@@ -79,9 +79,11 @@ public class SkiaDrawingService : ISkiaDrawingService
 				// Update the second point (radius endpoint)
 				CurrentShape.Vertices[1] = new Vertex(x, y);
 			}
+			Console.WriteLine("Circle");
 		}
 		else
 		{
+			Console.WriteLine("Pen");
 			// Regular pen drawing
 			CurrentShape?.Vertices.Add(new Vertex(x, y));
 		}
