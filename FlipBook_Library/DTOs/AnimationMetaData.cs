@@ -4,7 +4,9 @@ public class AnimationMetaData
 {
 	public Guid UserID { get; set; }
 
-	public string Title { get; set; } = string.Empty;
+	public int AnimationWidth { get; set; } = 800;
 
-	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+	public int AnimationHeight { get; set; } = 600;
+
+	public int FrameRate { get; set; } = 12;
 }

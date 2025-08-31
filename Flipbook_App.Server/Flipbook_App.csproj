@@ -8,68 +8,51 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Animations\CanvasUploads\**" />
-    <Content Remove="Animations\CanvasUploads\**" />
-    <EmbeddedResource Remove="Animations\CanvasUploads\**" />
-    <None Remove="Animations\CanvasUploads\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="$(SolutionDir).editorconfig" />
     <None Include="$(SolutionDir).gitignore" />
     <None Include="Flipbook_App.Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageReference Include="EntityFramework" Version="6.5.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.19" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  
+
   <ItemGroup>
+    <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" />
     <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\FlipBook_Library\FlipBook_App.Shared.csproj" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Animations\" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Reference Include="Flipbook_App.Client">
-      <HintPath>..\Flipbook_App.Client\bin\Debug\net8.0\Flipbook_App.Client.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 
+  <!-- Copy Blazor client build output to wwwroot after build -->
   <Target Name="CopyClientBlazorApp" AfterTargets="Build">
-    <!-- Temporary folder for client publish -->
     <PropertyGroup>
       <ClientPublishTemp>$(ProjectDir)ClientPublishTemp</ClientPublishTemp>
       <ServerCanvas>$(ProjectDir)wwwroot\canvas</ServerCanvas>
-      <ClientProject>$(SolutionDir)\Flipbook_App.Client\Flipbook_App.Client.csproj</ClientProject>
     </PropertyGroup>
 
-    <!-- Publish the client to a temporary folder -->
-	<Exec Command="dotnet publish &quot;$(ClientProject)&quot; -c $(Configuration) -o &quot;$(ClientPublishTemp)&quot;" />
+    <!-- Publish client to a temp folder -->
+    <Exec Command="dotnet publish &quot;..\Flipbook_App.Client\Flipbook_App.Client.csproj&quot; -c $(Configuration) -o &quot;$(ClientPublishTemp)&quot;" />
 
-    <!-- Delete old canvas folder if exists -->
+    <!-- Clear old -->
     <RemoveDir Directories="$(ServerCanvas)" />
-
-    <!-- Create canvas folder -->
     <MakeDir Directories="$(ServerCanvas)" />
 
-    <!-- Copy all files from client wwwroot recursively, preserving folder structure -->
+    <!-- Copy all wwwroot -->
     <ItemGroup>
       <ClientWwwRoot Include="$(ClientPublishTemp)\wwwroot\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(ClientWwwRoot)" DestinationFolder="$(ServerCanvas)\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
-    <!-- Delete temporary folder -->
+    <!-- Cleanup -->
     <RemoveDir Directories="$(ClientPublishTemp)" />
   </Target>
 

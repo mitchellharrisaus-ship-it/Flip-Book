@@ -1,4 +1,3 @@
-using FlipbookApp.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -6,17 +5,17 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
-using System.Security.Cryptography;
+using Flipbook_App.Repositories;
 
-namespace FlipbookApp.Pages;
+namespace Flipbook_App.Pages;
 
 public class LoginModel : PageModel
 {
-	private readonly AppDbContext _db;
+	private readonly RepositoryManager repositoryManager;
 
-	public LoginModel(AppDbContext db)
+	public LoginModel(RepositoryManager repositoryManager)
 	{
-		_db = db;
+		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
 	}
 
 	[BindProperty]
@@ -40,8 +39,7 @@ public class LoginModel : PageModel
 			return Page();
 
 		// Find user in DB
-		var user = _db.Users.SingleOrDefault(u => u.Username == Input.Username);
-
+		var user = repositoryManager.Users.GetByUsername(Input.Username);
 		if (user == null)
 		{
 			ModelState.AddModelError("", "Invalid username or password.");

@@ -13,7 +13,7 @@
 
 <div style="margin-bottom: 20px;">
     <label for="projectName">Name of Project:</label>
-    <input type="text" id="projectName"/>
+    <input type="text" id="projectName" @bind="AnimationTitle" />
 </div>
 
 <div class="main-container">
@@ -32,7 +32,7 @@
                 var localIndex = frameIndex; <!-- Prevent closure issue on select / delete frames -->
 
                 <div class="canvas-item @(frameIndex == activeFrameIndex ? "active" : "")"
-                     @onclick="() => SelectFrame(localIndex)">
+                @onclick="() => SelectFrame(localIndex)">
                     <div class="canvas-thumbnail">
                         <div class="canvas-number">@(frameIndex + 1)</div>
                         <div class="canvas-preview">
@@ -68,7 +68,6 @@
 
         <div class="toolbar">
             <button @onclick="ClearCanvas">Clear</button>
-            <button @onclick="LoadImage">Load Image</button>
             <button class="UndoRedo" @onclick="Undo"> Undo </button>
             <button class="UndoRedo" @onclick="Redo"> Redo </button>
             
@@ -252,7 +251,8 @@
         Height = 600.0f     //Default to current canvas height
     };
 
-    const string testAnimationName = "Test Animation"; // TODO: REMOVE ONCE ACTUAL ANIMATIONS IMPLEMENTED
+    const string defaultTitle = "My Animation";
+    string AnimationTitle { get; set; } = defaultTitle;
 
     float scaleX = 1f;
     float scaleY = 1f;
@@ -531,20 +531,8 @@
         RedrawCanvas();
     }
 
-    async Task LoadImage()
+    void Undo()
     {
-        var actions = await ApiService.LoadAnimation(testAnimationName);
-        drawingService.RecreateCurrentFrame();
-        RedrawCanvas();
-    }
-
-    void Undo(MouseEventArgs e)
-    {
-        if (drawingService.Frames.Any())
-        {
-            ApiService.Undo(testAnimationName, activeFrameIndex);
-        }
-
         drawingService.Undo();
         RedrawCanvas();
     }
@@ -557,7 +545,40 @@
             return;
         }
 
-        ApiService.Redo(testAnimationName, activeFrameIndex, redoneAction);
         RedrawCanvas();
+    }
+
+    async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(AnimationTitle))
+        {
+            AnimationTitle = defaultTitle;
+        }
+
+        // not implemented on server yet, otherwise each save creates a whole new animation entry
+        // AnimationTitle = await ApiService.EnsureValidTitle(AnimationTitle);
+        StateHasChanged(); // to update the input box if title was changed
+
+        try {
+            await ApiService.Save(drawingService.Frames, AnimationTitle);
+            Console.WriteLine("Successfully saved animation to server");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving animation: {ex.Message}");
+        }
+    }
+
+    // Not triggered by load button anymore, not sure how loading will actually be done yet
+    async Task Load()
+    {
+        throw new NotImplementedException();
+        // var animation = await ApiService.Load(testAnimationID);
+        // Console.WriteLine("Successfully loaded animation from server");
+
+        // drawingService.LoadAnimation(animation);
+        // activeFrameIndex = drawingService.CurrentFrameIndex;
+
+        // RedrawCanvas();
     }
 }

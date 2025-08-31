@@ -1,19 +1,28 @@
 using FlipbookApp.Data;
+using FlipbookApp.Models;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 
 namespace Flipbook_App.Pages;
 
 public class ProjectsModel : PageModel
 {
-	public List<string> PlaceholderProjects { get; set; } = new List<string>();
+	RepositoryManager repositoryManager;
+
+	public ProjectsModel(RepositoryManager repositoryManager)
+	{
+		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
+	}
+
+	public IList<AnimationReference> UserProjects { get; set; } = [];
 
 	public void OnGet()
 	{
-		// Create 6 placeholder projects
-		for (int i = 1; i <= 6; i++)
+		if (User.Identity?.IsAuthenticated ?? false)
 		{
-			PlaceholderProjects.Add($"Project {i}");
+			var username = User.Identity.Name;
+			var userAnimations = repositoryManager.Users.GetUserAnimations(username);
+
+			UserProjects = userAnimations.OrderByDescending(a => a.CreatedAt).ToList() ?? [];
 		}
 	}
 }
