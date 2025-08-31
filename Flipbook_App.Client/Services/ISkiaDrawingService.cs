@@ -32,6 +32,4 @@ public interface ISkiaDrawingService
 
 	void DeleteFrame(int frameIndex);
 	void Draw(SKCanvas canvas);
-
-	Animation GetAnimation();
 }

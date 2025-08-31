@@ -1,4 +1,4 @@
-﻿using Flipbook_App.Models.DTOs;
+﻿using FlipBook_Library.DTOs;
 
 namespace Flipbook_App.Services;
 

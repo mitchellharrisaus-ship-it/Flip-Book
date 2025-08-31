@@ -1,6 +1,7 @@
 ﻿using Flipbook_App.Data;
-using Flipbook_App.Models;
 using Flipbook_App.Repositories.Interfaces;
+using FlipBook_App.Shared.Core;
+using FlipBook_Library.Core;
 using System.Data.Entity;
 
 namespace Flipbook_App.Repositories;

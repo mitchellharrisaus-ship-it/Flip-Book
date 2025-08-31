@@ -1,5 +1,5 @@
-using FlipbookApp.Data;
-using FlipbookApp.Models;
+using Flipbook_App.Repositories;
+using FlipBook_App.Shared.Core;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Flipbook_App.Pages;

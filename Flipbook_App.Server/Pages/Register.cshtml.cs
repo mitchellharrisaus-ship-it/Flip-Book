@@ -1,5 +1,3 @@
-using FlipbookApp.Data;
-using FlipbookApp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +7,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using FlipBook_Library.Core;
+using Flipbook_App.Repositories;
 
 namespace Flipbook_App.Pages;
 
