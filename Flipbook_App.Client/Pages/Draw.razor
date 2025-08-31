@@ -234,7 +234,6 @@
 @code {
     SkiaDrawingService drawingService = new(new DrawShapeService());
     SKCanvasView? canvasView;
-    SKCanvas? canvas;
 
     int activeFrameIndex = 0;
     BrushType selectedShape = BrushType.Circle;
@@ -384,12 +383,7 @@
 
     void PaintCanvas(SKPaintSurfaceEventArgs e)
     {
-        if (canvas == null)
-        {
-            canvas = e.Surface.Canvas;
-        }
-
-        drawingService.Draw(canvas);
+        drawingService.Draw(e.Surface.Canvas);
     }
 
     void PointerDown(PointerEventArgs e)
@@ -413,11 +407,6 @@
         if (currentDrawingMode == DrawingMode.Select)
             return;
 
-        // if (drawingService.CurrentShape != null)
-        // {
-        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        // }
-
         drawingService.HandlePointerUp();
         RedrawCanvas(); // Ensure shapes are rendered properly
     }
@@ -427,11 +416,6 @@
         // Only process drawing if not in select mode
         if (currentDrawingMode == DrawingMode.Select)
             return;
-
-        // if (drawingService.CurrentShape != null)
-        // {
-        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        // }
 
         drawingService.HandlePointerUp();
         RedrawCanvas(); // Ensure shapes are rendered properly
