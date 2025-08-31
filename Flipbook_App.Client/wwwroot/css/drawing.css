@@ -33,12 +33,20 @@ body {
     font-family: var(--font-family);
     margin: 0;
     padding: 0;
+    background: linear-gradient(135deg, var(--blue-50) 0%, #ffffff 100%);
 }
 
 .canvas {
     outline: 2px solid var(--primary-blue);
     box-shadow: 0 8px 25px rgba(37, 99, 235, 0.15);
     border-radius: 12px;
+}
+
+.main-header {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-left: 5px;
+    height: 50px;
 }
 
 .UndoRedo {
@@ -66,7 +74,7 @@ body {
 
 .main-container {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - 60px);
     gap: 20px;
     background: linear-gradient(135deg, var(--blue-50) 0%, #ffffff 100%);
     font-family: var(--font-family);
@@ -588,6 +596,7 @@ input#projectName {
     align-items: center;
     border-top: 1px solid var(--blue-200);
     background: rgba(255, 255, 255, 0.8);
+    border-radius: 0 0 16px 16px;
 }
 
 .canvas-thumbnail {

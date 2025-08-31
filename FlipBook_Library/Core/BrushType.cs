@@ -3,5 +3,10 @@
 public enum BrushType
 {
 	Pen,
-	Circle
+	Eraser,
+	Marker,
+	Chain,
+	Kaleidoscope,
+	Circle,
+	Lasso
 }

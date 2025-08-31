@@ -24,12 +24,14 @@
             @foreach (var project in Model.UserProjects)
             {
                 <div class="col">
-                    <div class="card h-100 shadow-sm project-card">
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">@project.Title</h5>
-                            <p class="card-text text-muted mt-auto">Created: @project.CreatedAt.ToString("MMM dd, yyyy")</p>
+                    <a href="/canvas/@project.AnimationID" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm project-card">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">@project.Title</h5>
+                                <p class="card-text text-muted mt-auto">Created: @project.CreatedAt.ToString("MMM dd, yyyy")</p>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             }
         </div>
