@@ -1,8 +1,11 @@
 ﻿using Flipbook_App.Repositories;
 using Flipbook_App.Services;
+using FlipBook_App.Shared.DTOs;
+using FlipBook_App.Shared.Enums;
 using FlipBook_Library.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IO.Compression;
 
 namespace Flipbook_App.Controllers;
 
@@ -11,11 +14,13 @@ namespace Flipbook_App.Controllers;
 public class CanvasController : ControllerBase
 {
 	IBlobStorageService blobService;
+	IExportService exportService;
 	RepositoryManager repositoryManager;
 
-	public CanvasController(IBlobStorageService blobService, RepositoryManager repositoryManager)
+	public CanvasController(IBlobStorageService blobService, IExportService exportService, RepositoryManager repositoryManager)
 	{
 		this.blobService = blobService ?? throw new ArgumentNullException(nameof(blobService));
+		this.exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
 		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
 	}
 
@@ -112,4 +117,26 @@ public class CanvasController : ControllerBase
 		throw new NotImplementedException();
 	}
 
+	[Route("export/{animationTitle}")]
+	[HttpPost]
+	[Authorize]
+	public async Task<IActionResult> ExportAnimation([FromBody] byte[] compressedFrames, string animationTitle, [FromQuery] ExportOptions options)
+	{
+		if (compressedFrames == null || compressedFrames.Length == 0 || string.IsNullOrWhiteSpace(animationTitle))
+		{
+			return BadRequest("No frames provided for export.");
+		}
+
+		try
+		{
+			byte[] exportedBytes = await exportService.ExportAnimationAsync(compressedFrames, animationTitle, options);
+
+			// Send as downloadable file
+			return File(exportedBytes, "application/octet-stream");
+		}
+		catch (Exception ex)
+		{
+			return BadRequest($"Failed to export animation: {ex.Message}");
+		}
+	}
 }

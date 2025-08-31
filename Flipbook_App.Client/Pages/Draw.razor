@@ -1,5 +1,6 @@
 ﻿@page "/"
 @page "/{AnimationID:guid}"
+@using FlipBook_App.Shared.DTOs
 @using FlipBook_Library.Core
 @using FlipBook_Library.DTOs
 @using FlipBook_Library.Enums
@@ -10,12 +11,20 @@
 @using FlipBook_Library.Services;
 @using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
-@inject DrawActionApiService ApiService
+@inject IAnimationApiService ApiService
 @inject NavigationManager Navigation
+@inject ToastService ToastService
 
 <div class="main-header">
     <label for="projectName">Name of Project:</label>
     <input type="text" id="projectName" @bind="AnimationTitle" />
+
+    <div class="settings-buttons toolbar">
+        <button @onclick="ClearCanvas">Clear</button>
+        <button @onclick="Save">Save</button>
+        <button @onclick="GoToProjects" class="btn">Home</button>
+        <button @onclick="OpenExportModal" class="btn">Export</button>
+    </div>
 </div>
 
 <div class="main-container">
@@ -267,13 +276,12 @@
                 </div>
             }
         </div>
-        <!-- Buttons below settings -->
-        <div class="settings-buttons toolbar">
-            <button @onclick="ClearCanvas">Clear</button>
-            <button @onclick="Save">Save</button>
-            <button @onclick="GoToProjects" class="btn btn-secondary">Home</button>
-        </div>
     </div>
+
+    <ExportOptionsModal IsOpen="@isExportModalOpen"
+                        IsOpenChanged="@(v => isExportModalOpen = v)"
+                        Options="@exportOptions"
+                        OnExport="Export" />
 </div>
 
 @code {
@@ -315,6 +323,9 @@
 
     // Computed property for canvas style
     string canvasStyle => $"touch-action: none; width: 800px; height: 600px; cursor: {GetCursorStyle()};";
+
+    bool isExportModalOpen = false;
+    ExportOptions exportOptions = new();
 
     // Use JS runtime to get the bounding rect of the canvas, this information is not exposed by SkiaSharp.
     // Script is defined in wwwroot/js/canvasHelper.js
@@ -476,11 +487,6 @@
         if (currentDrawingMode == DrawingMode.Select)
             return;
 
-        // if (drawingService.CurrentShape != null)
-        // {
-        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        // }
-
         drawingService.HandlePointerUp();
         RedrawCanvas(); // Ensure shapes are rendered properly
     }
@@ -490,11 +496,6 @@
         // Only process drawing if not in select mode
         if (currentDrawingMode == DrawingMode.Select)
             return;
-
-        // if (drawingService.CurrentShape != null)
-        // {
-        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
-        // }
 
         drawingService.HandlePointerUp();
         RedrawCanvas(); // Ensure shapes are rendered properly
@@ -655,8 +656,28 @@
         Navigation.NavigateTo("/projects");
     }
 
+    void OpenExportModal()
+    {
+        exportOptions = new ExportOptions();
+        isExportModalOpen = true;
+    }
+
     void OnColorChanged(ChangeEventArgs e)
     {
         SetColor(e.Value?.ToString() ?? "#000000");
+    }
+
+    async Task Export(ExportOptions options)
+    {
+        try
+        {
+            var renderedFrames = drawingService.RenderAnimation();
+            await ApiService.Export(renderedFrames, AnimationTitle, options);
+            await ToastService.ShowToast("Successfully exported animation!", ToastType.Success);
+        }
+        catch (Exception ex)
+        {
+            await ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
+        }
     }
 }

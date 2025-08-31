@@ -50,6 +50,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 		var containerName = config.GetValue<string>("AzureStorage:ContainerName");
 		return new BlobStorageService(connectionString, containerName);
 	});
+	services.AddSingleton<IExportService, ExportService>();
 
 	services.AddScoped<CanvasController>();
 
