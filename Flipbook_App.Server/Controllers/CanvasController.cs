@@ -11,11 +11,13 @@ namespace Flipbook_App.Controllers;
 public class CanvasController : ControllerBase
 {
 	IBlobStorageService blobService;
+	IExportService exportService;
 	RepositoryManager repositoryManager;
 
-	public CanvasController(IBlobStorageService blobService, RepositoryManager repositoryManager)
+	public CanvasController(IBlobStorageService blobService, IExportService exportService, RepositoryManager repositoryManager)
 	{
 		this.blobService = blobService ?? throw new ArgumentNullException(nameof(blobService));
+		this.exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
 		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
 	}
 
@@ -112,4 +114,11 @@ public class CanvasController : ControllerBase
 		throw new NotImplementedException();
 	}
 
+	[Route("export/{animationTitle}")]
+	[HttpPost]
+	[Authorize]
+	public async Task<IActionResult> ExportAnimation([FromBody] byte[] compressedFrames, string animationTitle)
+	{
+		throw new NotImplementedException();
+	}
 }

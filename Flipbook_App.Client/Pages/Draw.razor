@@ -67,6 +67,9 @@
             <button class="UndoRedo" @onclick="Undo"> Undo </button>
             <button class="UndoRedo" @onclick="Redo"> Redo </button>
             <button @onclick="Save" >Save</button>
+
+            <button @onclick="Export">Export 1</button>
+
         </div>
 
         <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
@@ -83,6 +86,7 @@
 @code {
     SkiaDrawingService drawingService = new();
     SKCanvasView? canvasView;
+    SKCanvas? canvas;
 
     int activeFrameIndex = 0;
 
@@ -136,7 +140,12 @@
 
     void PaintCanvas(SKPaintSurfaceEventArgs e)
     {
-        drawingService.Draw(e.Surface.Canvas);
+        if (canvas == null)
+        {
+            canvas = e.Surface.Canvas;
+        }
+
+        drawingService.Draw(canvas);
     }
 
     void PointerDown(PointerEventArgs e)
@@ -205,8 +214,6 @@
             AnimationTitle = defaultTitle;
         }
 
-        // not implemented on server yet, otherwise each save creates a whole new animation entry
-        // AnimationTitle = await ApiService.EnsureValidTitle(AnimationTitle);
         StateHasChanged(); // to update the input box if title was changed
 
         try {
@@ -219,16 +226,18 @@
         }
     }
 
-    // Not triggered by load button anymore, not sure how loading will actually be done yet
-    async Task Load()
+    async Task Export()
     {
-        throw new NotImplementedException();
-        // var animation = await ApiService.Load(testAnimationID);
-        // Console.WriteLine("Successfully loaded animation from server");
+        var renderedFrames = drawingService.RenderAnimation();
 
-        // drawingService.LoadAnimation(animation);
-        // activeFrameIndex = drawingService.CurrentFrameIndex;
-
-        // RedrawCanvas();
+        try
+        {
+            await ApiService.Export(renderedFrames, AnimationTitle);
+            Console.WriteLine("Successfully exported animation");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error exporting animation: {ex.Message}");
+        }
     }
 }

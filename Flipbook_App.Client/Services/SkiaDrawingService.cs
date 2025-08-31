@@ -204,6 +204,30 @@ public class SkiaDrawingService : ISkiaDrawingService
 		DrawShape(canvas, CurrentShape);
 	}
 
+	public IList<SKData> RenderAnimation(SKEncodedImageFormat format = SKEncodedImageFormat.Png, int renderQuality = 100, int width = 800, int height = 600)
+	{
+		var renderedFrames = new List<SKData>();
+
+		foreach (var frame in Frames)
+		{
+			var frameBitmaps = new List<SKBitmap>();
+
+			var bitmap = new SKBitmap(width, height);
+			using var canvas = new SKCanvas(bitmap);
+			canvas.Clear(SKColors.White);
+
+			foreach (var shape in frame.Actions)
+			{
+				DrawShape(canvas, shape);
+			}
+
+			var rendered = SKImage.FromBitmap(bitmap).Encode(format, renderQuality);
+			renderedFrames.Add(rendered);
+		}
+
+		return renderedFrames;
+	}
+
 	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)
 	{
 		using var paint = GetShapePaint(shape);
