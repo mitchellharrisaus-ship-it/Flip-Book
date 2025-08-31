@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/{AnimationID:guid}"
 @using FlipBook_App.Shared.DTOs
 @using FlipBook_Library.Core
 @using FlipBook_Library.DTOs
@@ -11,9 +12,10 @@
 @using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
 @inject IAnimationApiService ApiService
+@inject NavigationManager Navigation
 @inject ToastService ToastService
 
-<div style="margin-bottom: 20px;">
+<div class="main-header">
     <label for="projectName">Name of Project:</label>
     <input type="text" id="projectName" @bind="AnimationTitle" />
 </div>
@@ -38,7 +40,6 @@
                     <div class="canvas-thumbnail">
                         <div class="canvas-number">@(frameIndex + 1)</div>
                         <div class="canvas-preview">
-                            <!-- Simplified preview - could be enhanced with actual canvas preview -->
                             <div class="preview-content">
                                 @if (drawingService.Frames[frameIndex].Actions.Any())
                                 {
@@ -66,32 +67,64 @@
 
     <!-- Main Canvas Area -->
     <div class="canvas-area">
-        <h3>Frame @(activeFrameIndex + 1)</h3>
-
-        <div class="toolbar">
-            <button @onclick="ClearCanvas">Clear</button>
-            <button class="UndoRedo" @onclick="Undo"> Undo </button>
-            <button class="UndoRedo" @onclick="Redo"> Redo </button>
-            <button class="btn" @onclick="OpenExportModal"> Export </button>
-            
-            <!-- Drawing Mode Selection Tools -->
-            <div class="brush-tools">
-                <button class="brush-btn @(currentDrawingMode == DrawingMode.Select ? "active" : "")" 
-                        @onclick="() => SetDrawingMode(DrawingMode.Select)" title="Select Tool">
-                    ↖️ Select
-                </button>
-                <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen ? "active" : "")" 
-                        @onclick="() => SetDrawingMode(DrawingMode.Pen)" title="Pen Tool">
-                    ✏️ Pen
-                </button>
-                <button class="brush-btn @(currentDrawingMode == DrawingMode.Shape ? "active" : "")" 
-                        @onclick="() => SetDrawingMode(DrawingMode.Shape)" title="Shape Tool">
-                    🔷 Shape
-                </button>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Frame @(activeFrameIndex + 1)</h3>
+            <div style="display: flex; gap: 10px;">
+                <button class="UndoRedo" @onclick="Undo" title="Undo">⟲</button>
+                <button class="UndoRedo" @onclick="Redo" title="Redo">⟳</button>
             </div>
         </div>
 
-        <!-- Physics Settings moved above canvas -->
+        <!-- Drawing Mode Selection Tools -->
+        <div class="toolbar">
+            <!-- Existing toolbar buttons -->
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Select ? "active" : "")" 
+                    @onclick="() => SetDrawingMode(DrawingMode.Select)" title="Select Tool">
+                ↖️ Select
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Pen ? "active" : "")" 
+                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Pen; }" title="Pen Tool">
+                ✏️ Pen
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Eraser ? "active" : "")" 
+                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Eraser; }" title="Eraser Tool">
+                🧽 Eraser
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Marker ? "active" : "")" 
+                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Marker; }" title="Marker Tool">
+                🖊️ Marker
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Chain ? "active" : "")" 
+                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Chain; }" title="Chain Tool">
+                ⛓️ Chain
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Kaleidoscope ? "active" : "")" 
+                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Kaleidoscope; }" title="Kaleidoscope Tool">
+                🌀 Kaleidoscope
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Lasso ? "active" : "")" 
+                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Lasso; }" title="Lasso Tool">
+                🪢 Lasso
+            </button>
+            <button class="brush-btn @(currentDrawingMode == DrawingMode.Shape ? "active" : "")" 
+                    @onclick="() => SetDrawingMode(DrawingMode.Shape)" title="Shape Tool">
+                🔷 Shape
+            </button>
+        </div>
+
+        <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
+        OnPaintSurface="PaintCanvas"
+        IgnorePixelScaling="true"
+        @onpointermove="PointerMove"
+        @onpointerdown="PointerDown"
+        @onpointerup="PointerUp"
+        @onpointerleave="PointerLeave"
+        style="@canvasStyle" />
+
+        <!-- Spacer to move physics controls lower -->
+        <div style="height:40px;"></div>
+
+        <!-- Physics Settings bar moved below canvas -->
         <div class="physics-controls">
             <!-- Physics Enabled Checkbox -->
             <div class="physics-checkbox-group">
@@ -112,15 +145,6 @@
                 </div>
             }
         </div>
-
-        <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
-        OnPaintSurface="PaintCanvas"
-        IgnorePixelScaling="true"
-        @onpointermove="PointerMove"
-        @onpointerdown="PointerDown"
-        @onpointerup="PointerUp"
-        @onpointerleave="PointerLeave"
-        style="@canvasStyle" />
     </div>
 
     <!-- Right Sidebar for Shape and Physics Settings -->
@@ -130,6 +154,21 @@
         </div>
 
         <div class="settings-content">
+            <!-- Colour Picker -->
+            <div class="settings-section">
+                <h5>Colour Picker</h5>
+                <div class="color-picker-group">
+                    <label for="colorPicker">Colour:</label>
+                    <input type="color" id="colorPicker" value="@SelectedColor" @onchange="OnColorChanged" />
+                    <div class="saved-colors">
+                        @foreach (var color in SavedColors)
+                        {
+                            <button class="saved-color-btn" style="background-color: @color; width: 24px; height: 24px; border: 1px solid #ccc; margin-right: 4px;" @onclick="() => SetColor(color)" title="@color"></button>
+                        }
+                    </div>
+                </div>
+            </div>
+
             <!-- Shape Selection Section -->
             <div class="settings-section">
                 <h5>Shape Settings</h5>
@@ -230,6 +269,12 @@
                 </div>
             }
         </div>
+        <!-- Buttons below settings -->
+        <div class="settings-buttons toolbar">
+            <button @onclick="ClearCanvas">Clear</button>
+            <button @onclick="Save">Save</button>
+            <button @onclick="GoToProjects" class="btn btn-secondary">Home</button>
+        </div>
     </div>
 
     <ExportOptionsModal IsOpen="@isExportModalOpen"
@@ -239,6 +284,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public Guid? AnimationID { get; set; }
+
     SkiaDrawingService drawingService = new(new DrawShapeService());
     SKCanvasView? canvasView;
 
@@ -267,6 +315,9 @@
     float canvasLeft = 0f;
     float canvasTop = 0f;
 
+    string SelectedColor { get; set; } = "#000000";
+    string[] SavedColors { get; set; } = new[] { "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FFFFFF" };
+
     record DomRect(double left, double top, double width, double height);
 
     // Computed property for canvas style
@@ -284,8 +335,28 @@
             var rect = await JSRuntime.InvokeAsync<DomRect>("getCanvasRect");
             canvasLeft = (float)rect.left;
             canvasTop = (float)rect.top;
-            scaleX = 800f / (float)rect.width;   // CSS width / actual bounding width
-            scaleY = 600f / (float)rect.height;  // CSS height / actual bounding height
+            scaleX = 800f / (float)rect.width;
+            scaleY = 600f / (float)rect.height;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AnimationID.HasValue)
+        {
+            try
+            {
+                var animation = await ApiService.Load(AnimationID.Value);
+                if (animation != null)
+                {
+                    drawingService.LoadAnimation(animation);
+                    activeFrameIndex = drawingService.CurrentFrameIndex;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading animation: {ex.Message}");
+            }
         }
     }
 
@@ -348,7 +419,6 @@
                 break;
             case DrawingMode.Pen:
                 drawingService.IsDrawingEnabled = true;
-                drawingService.ActiveBrush = BrushType.Pen;
                 selectedPhysicsObject = null; // Clear selection when switching to drawing mode
                 break;
             case DrawingMode.Shape:
@@ -379,7 +449,7 @@
             activeFrameIndex = index;
             drawingService.CurrentFrameIndex = index;
             RedrawCanvas();
-            StateHasChanged(); // needed to re-draw ui elements
+            StateHasChanged();
         }
     }
 
@@ -387,7 +457,6 @@
     {
         drawingService.DeleteFrame(index);
         activeFrameIndex = drawingService.CurrentFrameIndex;
-
         RedrawCanvas();
     }
 
@@ -517,13 +586,12 @@
     {
         var x = (e.ClientX - canvasLeft) * scaleX;
         var y = (e.ClientY - canvasTop) * scaleY;
-
         return new((float)x, (float)y);
     }
 
     void RedrawCanvas()
     {
-        canvasView?.Invalidate(); // triggers redraw
+        canvasView?.Invalidate();
     }
 
     void ClearCanvas()
@@ -545,7 +613,6 @@
         {
             return;
         }
-
         RedrawCanvas();
     }
 
@@ -555,9 +622,7 @@
         {
             AnimationTitle = defaultTitle;
         }
-
-        StateHasChanged(); // to update the input box if title was changed
-
+        StateHasChanged();
         try {
             await ApiService.Save(drawingService.Frames, AnimationTitle);
             Console.WriteLine("Successfully saved animation to server");
@@ -568,15 +633,38 @@
         }
     }
 
-    void OpenExportModal()
+    void SelectTool(BrushType tool)
     {
-        exportOptions = new ExportOptions(); // Reset or prefill as needed
+        drawingService.ActiveBrush = tool;
+        StateHasChanged();
+    }
+
+    void SetColor(string color)
+    {
+        SelectedColor = color;
+        drawingService.SetBrushColor(color); // Implement this method in SkiaDrawingService
+    }
+
+    async Task Load()
+    {
+        throw new NotImplementedException();
+    }
+
+    void GoToProjects()
+    {
+        Navigation.NavigateTo("/projects");
+    }
+
+    void OpenExportModal()
+        exportOptions = new ExportOptions();
         isExportModalOpen = true;
     }
 
+    void OnColorChanged(ChangeEventArgs e)
+    {
+        SetColor(e.Value?.ToString() ?? "#000000");
     async Task Export(ExportOptions options)
     {
-        // Use your ApiService.Export with options
         try
         {
             var renderedFrames = drawingService.RenderAnimation();

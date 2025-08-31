@@ -11,9 +11,15 @@ public class DrawShapeService : IDrawShapeService
 	{
 		using var paint = CreateShapePaint(shape.BrushColour, shape.BrushSize);
 
-		// Convert BrushType to PhysicsShape for unified handling
-		var shapeType = ConvertBrushTypeToPhysicsShape(shape.Brush);
+		// Handle pen drawing directly without converting to PhysicsShape
+		if (shape.Brush == BrushType.Pen)
+		{
+			DrawLines(canvas, shape.Vertices, paint, shape.IsPhysicsObject);
+			return;
+		}
 
+		// Convert other BrushTypes to PhysicsShape for unified handling
+		var shapeType = ConvertBrushTypeToPhysicsShape(shape.Brush);
 		DrawShape(canvas, shapeType, shape.Vertices, shape.BrushSize, shape.BrushColour, shape.BrushSize, shape.IsPhysicsObject);
 	}
 
@@ -150,8 +156,7 @@ public class DrawShapeService : IDrawShapeService
 		return brushType switch
 		{
 			BrushType.Circle => PhysicsShape.Circle,
-			BrushType.Pen => PhysicsShape.Circle, // Default fallback - could be a custom "Line" shape
-			_ => PhysicsShape.Circle
+			_ => PhysicsShape.Circle // Default fallback for other shapes
 		};
 	}
 
