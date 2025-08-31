@@ -1,11 +1,12 @@
-﻿using FlipBook_Library.Core;
+﻿using FlipBook_App.Shared.Core;
+using FlipBook_Library.Core;
 using FlipBook_Library.DTOs;
 using FlipBook_Library.Enums;
 using FlipBook_Library.Models;
 using System.Numerics;
 
 namespace PhysicsEngine.Core;
-internal class PhysicsEngineCore
+public class PhysicsEngineCore
 {
 	float Height { get; set; }
 	float Width { get; set; }
@@ -18,19 +19,17 @@ internal class PhysicsEngineCore
 	int topRightCanvasX;
 	int bottomRightCanvasX;
 	int bottomRightCanvasY;
-	static Dictionary<PhysicsShape, Func<int, Vertex, List<Vertex>>> centrePointToShapeMapping;
 
 	public PhysicsEngineCore(Frame frame, PhysicsSettings settings)
 	{
 		Height = settings.Height;
 		Width = settings.Width;
 		worldSettings = settings;
-		centrePointToShapeMapping = GenerateDictionaryOfCentrePointToShapeMapping();
 
 		int counter = 0;
-		foreach (var shape in frame.Actions.Where(s => s.IsPhysicsObject))
+		foreach (var shape in frame.Actions)
 		{
-			if (shape.PhysicsSettings != null)
+			if (shape.PhysicsSettings != null && shape.IsPhysicsObject)
 			{
 				var vertices = shape.Vertices.ToList();
 				physicsObjects.Add(new PhysicsObject
@@ -40,8 +39,8 @@ internal class PhysicsEngineCore
 					FindMiddlePoint(shape.PhysicsSettings.Shape, vertices),
 					FindRadius(shape.PhysicsSettings.Shape, vertices)
 				));
-				counter++;
 			}
+			counter++;
 		}
 		
 		// Calculate all canvas boundaries
@@ -53,28 +52,10 @@ internal class PhysicsEngineCore
 		bottomRightCanvasY = bottomLeftCanvasY;
 	}
 
-	public List<List<(PhysicsShape, int, List<Vertex>)>> GenerateCoordinatesFromPhysics()
+	public List<List<PhysicsShapeInstance>> GenerateCoordinatesFromPhysics()
 	{
 		var trajectories = GenerateTrajectories();
 		return GenerateCoordinatesFromProjectileMotionFunctions(trajectories);
-	}
-
-	public static Dictionary<PhysicsShape, Func<int, Vertex, List<Vertex>>> GenerateDictionaryOfCentrePointToShapeMapping()
-	{
-		Dictionary<PhysicsShape, Func<int, Vertex, List<Vertex>>> centrePointToShapeMapping = new();
-		
-		centrePointToShapeMapping[PhysicsShape.Circle] = (radius, centre) =>
-		{
-			// Match the drawing system: only 2 vertices needed
-			var points = new List<Vertex>
-			{
-				centre, // Vertex[0] = center point
-				new Vertex { X = centre.X + radius, Y = centre.Y } // Vertex[1] = point on circumference (right edge)
-			};
-			return points;
-		};
-
-		return centrePointToShapeMapping;
 	}
 
 	public Dictionary<int, List<TrajectoryFunction>> GenerateTrajectories()
@@ -250,7 +231,6 @@ internal class PhysicsEngineCore
 		return Math.Min(positiveT1, positiveT2);
 	}
 
-	// Your existing methods remain the same
 	public Vertex FindMiddlePoint(PhysicsShape shape, List<Vertex> shapeCoordinates)
 	{
 		var furthestRightPoint = shapeCoordinates.Max(v => v.X);
@@ -279,9 +259,9 @@ internal class PhysicsEngineCore
 		return radius;
 	}
 
-	public List<List<(PhysicsShape, int, List<Vertex>)>> GenerateCoordinatesFromProjectileMotionFunctions(Dictionary<int, List<TrajectoryFunction>> projectileMotionFunctions)
+	public List<List<PhysicsShapeInstance>> GenerateCoordinatesFromProjectileMotionFunctions(Dictionary<int, List<TrajectoryFunction>> projectileMotionFunctions)
 	{
-		var result = new List<List<(PhysicsShape, int, List<Vertex>)>>();
+		var result = new List<List<PhysicsShapeInstance>>();
 		
 		// Calculate time increment per frame
 		var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
@@ -290,7 +270,7 @@ internal class PhysicsEngineCore
 		for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
 		{
 			var currentTime = frameIndex * timePerFrame;
-			var frameShapes = new List<(PhysicsShape, int, List<Vertex>)>();
+			var frameShapes = new List<PhysicsShapeInstance>();
 			
 			// Process each physics object
 			foreach (var objectTrajectories in projectileMotionFunctions)
@@ -316,16 +296,17 @@ internal class PhysicsEngineCore
 					if (physicsObject == null) continue;
 					
 					var shape = physicsObject.Settings.Shape;
-					var radius = (int)physicsObject.Radius;
+					var radius = physicsObject.Radius;
 					
-					// Generate shape vertices using the mapping function
-					if (centrePointToShapeMapping.ContainsKey(shape))
-					{
-						var shapeVertices = centrePointToShapeMapping[shape](radius, centerPosition);
-						
-						// Add this object as a separate shape/stroke in the frame
-						frameShapes.Add((shape, radius, shapeVertices));
-					}
+					// Create PhysicsShapeInstance with just the center point
+					var physicsShapeInstance = new PhysicsShapeInstance(
+						objectId: objectId,
+						shape: shape,
+						radius: radius,
+						centerVertice: centerPosition  // Just pass the center vertex directly
+					);
+					
+					frameShapes.Add(physicsShapeInstance);
 				}
 			}
 			

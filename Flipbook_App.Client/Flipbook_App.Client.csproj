@@ -14,5 +14,6 @@
 	
   <ItemGroup>
     <ProjectReference Include="..\FlipBook_Library\FlipBook_App.Shared.csproj" />
+	<ProjectReference Include="..\PhysicsEngine\PhysicsEngine.csproj" />
   </ItemGroup>
 </Project>
