@@ -2,5 +2,5 @@
 
 public interface IExportService
 {
-
+	Task ExportAnimation(byte[] compressedFrames, string animationTitle);
 }

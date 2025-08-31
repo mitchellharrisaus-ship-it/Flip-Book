@@ -9,7 +9,7 @@
 @using FlipBook_Library.Services;
 @using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
-@inject DrawActionApiService ApiService
+@inject AnimationApiService ApiService
 
 <div style="margin-bottom: 20px;">
     <label for="projectName">Name of Project:</label>
@@ -70,6 +70,7 @@
             <button @onclick="ClearCanvas">Clear</button>
             <button class="UndoRedo" @onclick="Undo"> Undo </button>
             <button class="UndoRedo" @onclick="Redo"> Redo </button>
+            <button class="btn" @onclick="Export"> Export </button>
             
             <!-- Drawing Mode Selection Tools -->
             <div class="brush-tools">

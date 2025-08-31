@@ -3,7 +3,7 @@ using FlipBook_Library.DTOs;
 
 namespace Flipbook_App.Client.Services;
 
-public interface IDrawActionApiService
+public interface IAnimationApiService
 {
 	Task<string> EnsureValidTitle(string currentTitle);
 

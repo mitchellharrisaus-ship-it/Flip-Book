@@ -3,6 +3,7 @@ using Flipbook_App.Services;
 using FlipBook_Library.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IO.Compression;
 
 namespace Flipbook_App.Controllers;
 
@@ -119,6 +120,20 @@ public class CanvasController : ControllerBase
 	[Authorize]
 	public async Task<IActionResult> ExportAnimation([FromBody] byte[] compressedFrames, string animationTitle)
 	{
-		throw new NotImplementedException();
+		if (compressedFrames == null || compressedFrames.Length == 0 || string.IsNullOrWhiteSpace(animationTitle))
+		{
+			return BadRequest("No frames provided for export.");
+		}
+
+		try
+		{
+			await exportService.ExportAnimation(compressedFrames, animationTitle);
+			return Ok("Export successful.");
+		}
+		catch (Exception ex)
+		{
+			return BadRequest($"Failed to export animation: {ex.Message}");
+		}
+
 	}
 }

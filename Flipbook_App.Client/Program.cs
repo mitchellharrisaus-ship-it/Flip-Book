@@ -9,8 +9,9 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddScoped<IDrawShapeService>();
+
+builder.Services.AddSingleton<IDrawShapeService, DrawShapeService>();
 builder.Services.AddScoped<SkiaDrawingService>();
-builder.Services.AddScoped<DrawActionApiService>();
+builder.Services.AddScoped<AnimationApiService>();
 
 await builder.Build().RunAsync();

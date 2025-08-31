@@ -5,7 +5,7 @@ using System.Net.Http.Json;
 
 namespace Flipbook_App.Client.Services;
 
-public class DrawActionApiService : IDrawActionApiService
+public class AnimationApiService : IAnimationApiService
 {
 	const string apiPath = "/api/canvas";
 
@@ -16,7 +16,7 @@ public class DrawActionApiService : IDrawActionApiService
 
 	readonly HttpClient httpClient;
 
-	public DrawActionApiService(HttpClient httpClient)
+	public AnimationApiService(HttpClient httpClient)
 	{
 		this.httpClient = httpClient;
 	}
@@ -52,7 +52,6 @@ public class DrawActionApiService : IDrawActionApiService
 
 		await httpClient.PostAsJsonAsync($"{exportPath}/{animationTitle}", zipData);
 	}
-
 
 	static async Task<byte[]> ZipFramesAsync(IList<SKData> frames)
 	{
