@@ -27,11 +27,11 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	IList<Stack<DrawActionDTO>> undoneActions = [];
 
-	private readonly IDrawShapeService _drawShapeService;
+	readonly IDrawShapeService drawShapeService;
 
 	public SkiaDrawingService(IDrawShapeService drawShapeService)
 	{
-		_drawShapeService = drawShapeService;
+		this.drawShapeService = drawShapeService ?? throw new ArgumentNullException(nameof(drawShapeService));
 	}
 
 	public void HandlePointerDown(float x, float y)
@@ -236,8 +236,8 @@ public class SkiaDrawingService : ISkiaDrawingService
 		DrawShape(canvas, CurrentShape);
 	}
 
-	private void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	void DrawShape(SKCanvas canvas, DrawActionDTO shape)
 	{
-		_drawShapeService.DrawShape(canvas, shape);
+		drawShapeService.DrawShape(canvas, shape);
 	}
 }

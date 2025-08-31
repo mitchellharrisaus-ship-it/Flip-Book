@@ -112,15 +112,4 @@ public class CanvasController : ControllerBase
 		throw new NotImplementedException();
 	}
 
-	//[Route("GenerateFrames")]
-	//[HttpPost]
-	//public async Task<IActionResult> GenerateFrames([FromBody] List<Frame> Frames, PhysicsSettings physicsSettings)
-	//{
-	//	if (physicsSettings == null || Frames == null || Frames.Count == 0)
-	//	{
-	//		return BadRequest("Missing required data.");
-	//	}
-
-	//	//Calls Frame Generator Service to generate frames with physics applied
-	//}
 }

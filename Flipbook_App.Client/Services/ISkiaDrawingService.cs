@@ -23,13 +23,14 @@ public interface ISkiaDrawingService
 	void HandlePointerMove(float x, float y);
 	void Clear();
 	void RecreateCurrentFrame();
+
 	void Undo();
 	DrawActionDTO? Redo();
 
 	void LoadAnimation(Animation? animation);
 
 	void CreateFrame(Frame? givenFrame = null);
-
 	void DeleteFrame(int frameIndex);
+
 	void Draw(SKCanvas canvas);
 }
