@@ -356,6 +356,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 			}
 		}
 	}
+
 	static SKPaint GetShapePaint(DrawActionDTO shape)
 	{
 		var color = new SKColor((byte)shape.BrushColour.R, (byte)shape.BrushColour.G, (byte)shape.BrushColour.B, (byte)shape.BrushColour.A);
@@ -398,15 +399,15 @@ public class SkiaDrawingService : ISkiaDrawingService
 				DrawShape(canvas, shape);
 			}
 
-			var rendered = SKImage.FromBitmap(bitmap).Encode(format, renderQuality);
+			var rendered = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, renderQuality);
 			renderedFrames.Add(rendered);
 		}
 
 		return renderedFrames;
 	}
 
-	void DrawShape(SKCanvas canvas, DrawActionDTO shape)
-	{
-		drawShapeService.DrawShape(canvas, shape);
-	}
+	//void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	//{
+	//	drawShapeService.DrawShape(canvas, shape);
+	//}
 }

@@ -34,5 +34,5 @@ public interface ISkiaDrawingService
 
 	void Draw(SKCanvas canvas);
 
-	IList<SKData> RenderAnimation(SKEncodedImageFormat format = SKEncodedImageFormat.Png, int renderQuality = 100, int width = 800, int height = 600);
+	IList<SKData> RenderAnimation(int renderQuality = 100, int width = 800, int height = 600);
 }

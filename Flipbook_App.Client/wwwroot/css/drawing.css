@@ -43,10 +43,72 @@ body {
 }
 
 .main-header {
-    margin-top: 5px;
-    margin-bottom: 5px;
-    margin-left: 5px;
-    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 6px 24px 0 24px; /* Minimal top padding */
+    background: linear-gradient(90deg, var(--blue-100) 0%, var(--blue-300) 100%);
+    box-shadow: 0 2px 12px rgba(37,99,235,0.08);
+}
+
+.main-header label {
+    margin-right: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.main-header input[type="text"] {
+    min-width: 220px;
+    max-width: 320px;
+    margin-right: 12px;
+    font-size: 16px;
+    height: 36px;
+    padding: 0 16px;
+    border: 2px solid var(--blue-200);
+    border-radius: 12px;
+    background: var(--surface-white);
+    color: var(--text-primary);
+    font-weight: 500;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
+.settings-buttons.toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: linear-gradient(90deg, var(--primary-blue) 0%, var(--blue-500) 100%);
+    border-radius: 8px;
+    padding: 0 12px;
+    height: 36px; /* Match input height */
+    box-shadow: 0 2px 12px rgba(37,99,235,0.12);
+}
+
+.settings-buttons.toolbar button {
+    min-width: 80px;
+    font-size: 15px;
+    padding: 0 16px;
+    height: 36px;
+    line-height: 36px;
+    margin: 0;
+    background: transparent;
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-buttons.toolbar button:hover,
+.settings-buttons.toolbar .btn-secondary:hover {
+    background: var(--blue-700);
+    color: #fff;
 }
 
 .UndoRedo {
@@ -97,6 +159,9 @@ body {
 }
 
 .settings-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
     border-left: 1px solid var(--blue-200);
 }
 
@@ -151,9 +216,20 @@ body {
 }
 
 .settings-content {
-    flex: 1;
-    padding: 20px;
+    flex: 1 1 auto;
     overflow-y: auto;
+    padding: 20px;
+}
+
+.settings-buttons {
+    flex-shrink: 0;
+    padding: 16px 20px;
+    background: linear-gradient(90deg, var(--blue-50) 0%, var(--surface-white) 100%);
+    border-top: 1px solid var(--blue-200);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    box-shadow: 0 -2px 12px rgba(37,99,235,0.06);
 }
 
 /* Enhanced Settings Sections with Blue Theme */
@@ -643,9 +719,13 @@ label, input, select, button, span, div, h1, h2, h3, h4, h5, h6, p {
 .toast-container {
     position: fixed;
     top: 32px;
-    right: 32px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 9999;
     pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .toast {

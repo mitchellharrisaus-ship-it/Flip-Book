@@ -18,6 +18,13 @@
 <div class="main-header">
     <label for="projectName">Name of Project:</label>
     <input type="text" id="projectName" @bind="AnimationTitle" />
+
+    <div class="settings-buttons toolbar">
+        <button @onclick="ClearCanvas">Clear</button>
+        <button @onclick="Save">Save</button>
+        <button @onclick="GoToProjects" class="btn">Home</button>
+        <button @onclick="OpenExportModal" class="btn">Export</button>
+    </div>
 </div>
 
 <div class="main-container">
@@ -268,12 +275,6 @@
                     </div>
                 </div>
             }
-        </div>
-        <!-- Buttons below settings -->
-        <div class="settings-buttons toolbar">
-            <button @onclick="ClearCanvas">Clear</button>
-            <button @onclick="Save">Save</button>
-            <button @onclick="GoToProjects" class="btn btn-secondary">Home</button>
         </div>
     </div>
 
@@ -656,6 +657,7 @@
     }
 
     void OpenExportModal()
+    {
         exportOptions = new ExportOptions();
         isExportModalOpen = true;
     }
@@ -663,6 +665,8 @@
     void OnColorChanged(ChangeEventArgs e)
     {
         SetColor(e.Value?.ToString() ?? "#000000");
+    }
+
     async Task Export(ExportOptions options)
     {
         try

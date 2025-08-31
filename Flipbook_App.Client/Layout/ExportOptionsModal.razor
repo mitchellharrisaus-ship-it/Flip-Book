@@ -76,7 +76,7 @@
 
     async Task Export()
     {
-        await OnExport.InvokeAsync(Options);
         CloseModal();
+        await OnExport.InvokeAsync(Options);
     }
 }
