@@ -27,30 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Flipbook_App.Client\Flipbook_App.Client.csproj" />
+    <ProjectReference Include="..\FlipBook_Library\FlipBook_App.Shared.csproj" />
   </ItemGroup>
-
-  <!-- Copy Blazor client build output to wwwroot after build -->
-  <Target Name="CopyClientBlazorApp" AfterTargets="Build">
-    <PropertyGroup>
-      <ClientPublishTemp>$(ProjectDir)ClientPublishTemp</ClientPublishTemp>
-      <ServerCanvas>$(ProjectDir)wwwroot\canvas</ServerCanvas>
-    </PropertyGroup>
-
-    <!-- Publish client to a temp folder -->
-    <Exec Command="dotnet publish &quot;..\Flipbook_App.Client\Flipbook_App.Client.csproj&quot; -c $(Configuration) -o &quot;$(ClientPublishTemp)&quot;" />
-
-    <!-- Clear old -->
-    <RemoveDir Directories="$(ServerCanvas)" />
-    <MakeDir Directories="$(ServerCanvas)" />
-
-    <!-- Copy all wwwroot -->
-    <ItemGroup>
-      <ClientWwwRoot Include="$(ClientPublishTemp)\wwwroot\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(ClientWwwRoot)" DestinationFolder="$(ServerCanvas)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-
-    <!-- Cleanup -->
-    <RemoveDir Directories="$(ClientPublishTemp)" />
-  </Target>
 
 </Project>

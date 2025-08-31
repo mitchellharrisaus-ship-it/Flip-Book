@@ -1,4 +1,5 @@
-﻿using Flipbook_App.Models;
+﻿using FlipBook_App.Shared.Core;
+using FlipBook_Library.Core;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flipbook_App.Data;

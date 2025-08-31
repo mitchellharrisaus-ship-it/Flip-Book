@@ -1,6 +1,6 @@
-﻿using Flipbook_App.Models.DTOs;
-using Flipbook_App.Repositories;
+﻿using Flipbook_App.Repositories;
 using Flipbook_App.Services;
+using FlipBook_Library.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -112,4 +112,15 @@ public class CanvasController : ControllerBase
 		throw new NotImplementedException();
 	}
 
+	//[Route("GenerateFrames")]
+	//[HttpPost]
+	//public async Task<IActionResult> GenerateFrames([FromBody] List<Frame> Frames, PhysicsSettings physicsSettings)
+	//{
+	//	if (physicsSettings == null || Frames == null || Frames.Count == 0)
+	//	{
+	//		return BadRequest("Missing required data.");
+	//	}
+
+	//	//Calls Frame Generator Service to generate frames with physics applied
+	//}
 }

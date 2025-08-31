@@ -1,7 +1,7 @@
-using Flipbook_App.Client.Models;
-using Flipbook_App.Client.Models.DTOs;
+using FlipBook_Library.Core;
+using FlipBook_Library.DTOs;
 using SkiaSharp;
-
+using FlipBook_Library.Services;
 namespace Flipbook_App.Client.Services;
 
 public class SkiaDrawingService : ISkiaDrawingService
@@ -18,12 +18,26 @@ public class SkiaDrawingService : ISkiaDrawingService
 	public SKColor BrushColour { get; set; } = SKColors.Black;
 	public int BrushSize { get; set; } = 2;
 
+	public bool IsPhysicsEnabled { get; set; } = false;
+	public bool PhysicsAppliesOnShapes { get; set; } = false;
+	public bool IsDrawingEnabled { get; set; } = true;
+	public PhysicsSettings? CurrentPhysicsSettings { get; set; }
+
 	bool isDrawing;
 
 	IList<Stack<DrawActionDTO>> undoneActions = [];
 
+	private readonly IDrawShapeService _drawShapeService;
+
+	public SkiaDrawingService(IDrawShapeService drawShapeService)
+	{
+		_drawShapeService = drawShapeService;
+	}
+
 	public void HandlePointerDown(float x, float y)
 	{
+		if (!IsDrawingEnabled) return;
+
 		isDrawing = true;
 
 		CurrentShape = new()
@@ -32,6 +46,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 			Brush = ActiveBrush,
 			BrushColour = new Colour(BrushColour),
 			BrushSize = BrushSize,
+			IsPhysicsObject = IsPhysicsEnabled && PhysicsAppliesOnShapes
 		};
 
 		if (undoneActions.ElementAtOrDefault(CurrentFrameIndex) == null)
@@ -47,17 +62,34 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	public void HandlePointerMove(float x, float y)
 	{
-		if (!isDrawing)
+		if (!IsDrawingEnabled || !isDrawing)
 		{
 			return;
 		}
 
-		CurrentShape?.Vertices.Add(new Vertex(x, y));
+		if (ActiveBrush == BrushType.Circle)
+		{
+			// For circles, we only need start and current point to define the radius
+			if (CurrentShape?.Vertices.Count == 1)
+			{
+				CurrentShape.Vertices.Add(new Vertex(x, y));
+			}
+			else if (CurrentShape?.Vertices.Count == 2)
+			{
+				// Update the second point (radius endpoint)
+				CurrentShape.Vertices[1] = new Vertex(x, y);
+			}
+		}
+		else
+		{
+			// Regular pen drawing
+			CurrentShape?.Vertices.Add(new Vertex(x, y));
+		}
 	}
 
 	public void HandlePointerUp()
 	{
-		if (!isDrawing)
+		if (!IsDrawingEnabled || !isDrawing)
 		{
 			return;
 		}
@@ -204,32 +236,8 @@ public class SkiaDrawingService : ISkiaDrawingService
 		DrawShape(canvas, CurrentShape);
 	}
 
-	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	private void DrawShape(SKCanvas canvas, DrawActionDTO shape)
 	{
-		using var paint = GetShapePaint(shape);
-
-		for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
-		{
-			var currentPoint = shape.Vertices[pointIndex];
-			var previousPoint = shape.Vertices[pointIndex - 1];
-
-			canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), paint);
-		}
-	}
-
-	static SKPaint GetShapePaint(DrawActionDTO shape)
-	{
-		var color = new SKColor((byte)shape.BrushColour.R, (byte)shape.BrushColour.G, (byte)shape.BrushColour.B, (byte)shape.BrushColour.A);
-
-		return new SKPaint
-		{
-			Style = SKPaintStyle.Stroke,
-			StrokeCap = SKStrokeCap.Round,
-
-			Color = color,
-			StrokeWidth = shape.BrushSize,
-
-			IsAntialias = true
-		};
+		_drawShapeService.DrawShape(canvas, shape);
 	}
 }
