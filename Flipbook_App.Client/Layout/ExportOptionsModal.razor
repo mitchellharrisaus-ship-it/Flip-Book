@@ -1,0 +1,82 @@
+﻿@using FlipBook_App.Shared.DTOs
+@using FlipBook_App.Shared.Enums
+@using Flipbook_App.Client.Services
+
+@if (IsOpen)
+{
+    <div class="export-modal-backdrop" @onclick="CloseModal">
+        <div class="export-modal" @onclick:stopPropagation="true">
+            <h4>Export Animation</h4>
+            <div class="export-form">
+                <div class="export-group">
+                    <label>Format:</label>
+                    <select @bind="Options.Format">
+                        @foreach (var format in Enum.GetValues<ExportFormats>())
+                        {
+                            <option value="@format">@format</option>
+                        }
+                    </select>
+                </div>
+                @if (Options.Format is not ExportFormats.PNGSequence and not ExportFormats.SpriteSheet)
+                {
+                    <div class="export-group">
+                        <label>Frame Rate: <span>@Options.FrameRate fps</span></label>
+                        <input type="range" min="1" max="60" @bind="Options.FrameRate" @bind:event="oninput" />
+                    </div>
+                }
+                <div class="export-group">
+                    <label>Quality: <span>@Options.Quality%</span></label>
+                    <input type="range" min="1" max="100" @bind="Options.Quality" @bind:event="oninput" />
+                </div>
+                <div class="export-group">
+                    <label>
+                        <input type="checkbox" @bind="Options.IncludeBackground" />
+                        Include Background
+                    </label>
+                </div>
+                <div class="export-group">
+                    <label>Background Color:</label>
+                    <input type="color" @bind="Options.BackgroundColor" disabled="@(Options.IncludeBackground == false)" />
+                </div>
+                @if (Options.Format == ExportFormats.SpriteSheet)
+                {
+                    <div class="export-group">
+                        <label>SpriteSheet Columns:</label>
+                        <input type="number" min="1" max="20" @bind="Options.SpriteSheetColumns" />
+                    </div>
+                }
+                @if (Options.Format is ExportFormats.GIF or ExportFormats.WebP)
+                {
+                    <div class="export-group">
+                        <label>
+                            <input type="checkbox" @bind="Options.Optimise" />
+                            Optimize GIF
+                        </label>
+                    </div>
+                }
+                <div class="export-actions">
+                    <button class="btn" @onclick="CloseModal">Cancel</button>
+                    <button class="btn btn-secondary" @onclick="Export">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public ExportOptions Options { get; set; } = new();
+    [Parameter] public EventCallback<ExportOptions> OnExport { get; set; }
+
+    void CloseModal()
+    {
+        IsOpenChanged.InvokeAsync(false);
+    }
+
+    async Task Export()
+    {
+        await OnExport.InvokeAsync(Options);
+        CloseModal();
+    }
+}

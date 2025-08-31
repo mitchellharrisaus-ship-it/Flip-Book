@@ -1,0 +1,44 @@
+﻿@using Flipbook_App.Client.Services
+@inject ToastService ToastService
+
+<div class="toast-container">
+    @if (visible)
+    {
+        <div class="toast @toastTypeClass" @key="currentMessage?.Message">
+            @currentMessage?.Message
+        </div>
+    }
+</div>
+
+@code {
+    ToastMessage? currentMessage;
+    bool visible;
+    string toastTypeClass = "";
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+    }
+
+    async Task ShowToast(ToastMessage message)
+    {
+        currentMessage = message;
+        toastTypeClass = message.Type switch
+        {
+            ToastType.Success => "toast-success",
+            ToastType.Error => "toast-error",
+            _ => "toast-info"
+        };
+        visible = true;
+        StateHasChanged();
+
+        await Task.Delay(message.Duration);
+        visible = false;
+        StateHasChanged();
+    }
+}

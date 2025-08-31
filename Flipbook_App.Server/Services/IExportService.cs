@@ -1,6 +1,8 @@
-﻿namespace Flipbook_App.Services;
+﻿using FlipBook_App.Shared.DTOs;
+
+namespace Flipbook_App.Services;
 
 public interface IExportService
 {
-	Task ExportAnimation(byte[] compressedFrames, string animationTitle);
+	Task<byte[]> ExportAnimationAsync(byte[] compressedFrames, string animationTitle, ExportOptions options);
 }

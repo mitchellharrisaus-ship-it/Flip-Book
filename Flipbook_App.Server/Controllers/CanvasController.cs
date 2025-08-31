@@ -1,5 +1,7 @@
 ﻿using Flipbook_App.Repositories;
 using Flipbook_App.Services;
+using FlipBook_App.Shared.DTOs;
+using FlipBook_App.Shared.Enums;
 using FlipBook_Library.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -118,7 +120,7 @@ public class CanvasController : ControllerBase
 	[Route("export/{animationTitle}")]
 	[HttpPost]
 	[Authorize]
-	public async Task<IActionResult> ExportAnimation([FromBody] byte[] compressedFrames, string animationTitle)
+	public async Task<IActionResult> ExportAnimation([FromBody] byte[] compressedFrames, string animationTitle, [FromQuery] ExportOptions options)
 	{
 		if (compressedFrames == null || compressedFrames.Length == 0 || string.IsNullOrWhiteSpace(animationTitle))
 		{
@@ -127,13 +129,14 @@ public class CanvasController : ControllerBase
 
 		try
 		{
-			await exportService.ExportAnimation(compressedFrames, animationTitle);
-			return Ok("Export successful.");
+			byte[] exportedBytes = await exportService.ExportAnimationAsync(compressedFrames, animationTitle, options);
+
+			// Send as downloadable file
+			return File(exportedBytes, "application/octet-stream");
 		}
 		catch (Exception ex)
 		{
 			return BadRequest($"Failed to export animation: {ex.Message}");
 		}
-
 	}
 }

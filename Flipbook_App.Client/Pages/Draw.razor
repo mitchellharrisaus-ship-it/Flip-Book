@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using FlipBook_App.Shared.DTOs
 @using FlipBook_Library.Core
 @using FlipBook_Library.DTOs
 @using FlipBook_Library.Enums
@@ -9,7 +10,8 @@
 @using FlipBook_Library.Services;
 @using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
-@inject AnimationApiService ApiService
+@inject IAnimationApiService ApiService
+@inject ToastService ToastService
 
 <div style="margin-bottom: 20px;">
     <label for="projectName">Name of Project:</label>
@@ -70,7 +72,7 @@
             <button @onclick="ClearCanvas">Clear</button>
             <button class="UndoRedo" @onclick="Undo"> Undo </button>
             <button class="UndoRedo" @onclick="Redo"> Redo </button>
-            <button class="btn" @onclick="Export"> Export </button>
+            <button class="btn" @onclick="OpenExportModal"> Export </button>
             
             <!-- Drawing Mode Selection Tools -->
             <div class="brush-tools">
@@ -229,6 +231,11 @@
             }
         </div>
     </div>
+
+    <ExportOptionsModal IsOpen="@isExportModalOpen"
+                        IsOpenChanged="@(v => isExportModalOpen = v)"
+                        Options="@exportOptions"
+                        OnExport="Export" />
 </div>
 
 @code {
@@ -264,6 +271,9 @@
 
     // Computed property for canvas style
     string canvasStyle => $"touch-action: none; width: 800px; height: 600px; cursor: {GetCursorStyle()};";
+
+    bool isExportModalOpen = false;
+    ExportOptions exportOptions = new();
 
     // Use JS runtime to get the bounding rect of the canvas, this information is not exposed by SkiaSharp.
     // Script is defined in wwwroot/js/canvasHelper.js
@@ -558,18 +568,24 @@
         }
     }
 
-    async Task Export()
+    void OpenExportModal()
     {
-        var renderedFrames = drawingService.RenderAnimation();
+        exportOptions = new ExportOptions(); // Reset or prefill as needed
+        isExportModalOpen = true;
+    }
 
+    async Task Export(ExportOptions options)
+    {
+        // Use your ApiService.Export with options
         try
         {
-            await ApiService.Export(renderedFrames, AnimationTitle);
-            Console.WriteLine("Successfully exported animation");
+            var renderedFrames = drawingService.RenderAnimation();
+            await ApiService.Export(renderedFrames, AnimationTitle, options);
+            await ToastService.ShowToast("Successfully exported animation!", ToastType.Success);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error exporting animation: {ex.Message}");
+            await ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
         }
     }
 }

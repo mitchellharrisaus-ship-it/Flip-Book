@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using FlipBook_Library.DTOs;
+using FlipBook_App.Shared.DTOs;
 
 namespace Flipbook_App.Client.Services;
 
@@ -11,5 +12,5 @@ public interface IAnimationApiService
 
 	Task<Animation> Load(Guid animationID);
 
-	Task Export(IList<SKData> renderedFrames, string animationTitle);
+	Task Export(IList<SKData> renderedFrames, string animationTitle, ExportOptions exportOptions);
 }

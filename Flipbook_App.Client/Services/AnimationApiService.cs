@@ -1,4 +1,7 @@
-﻿using FlipBook_Library.DTOs;
+﻿using FlipBook_App.Shared.DTOs;
+using FlipBook_App.Shared.Enums;
+using FlipBook_Library.DTOs;
+using Microsoft.JSInterop;
 using SkiaSharp;
 using System.IO.Compression;
 using System.Net.Http.Json;
@@ -15,10 +18,12 @@ public class AnimationApiService : IAnimationApiService
 	const string exportPath = $"{apiPath}/export";
 
 	readonly HttpClient httpClient;
+	readonly IJSRuntime jsRuntime;
 
-	public AnimationApiService(HttpClient httpClient)
+	public AnimationApiService(HttpClient httpClient, IJSRuntime jsRuntime)
 	{
-		this.httpClient = httpClient;
+		this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+		this.jsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
 	}
 
 	public async Task<string> EnsureValidTitle(string currentTitle)
@@ -46,11 +51,44 @@ public class AnimationApiService : IAnimationApiService
 		return animation ?? throw new NullReferenceException("Animation data was null.");
 	}
 
-	public async Task Export(IList<SKData> renderedFrames, string animationTitle)
+	public async Task Export(IList<SKData> renderedFrames, string animationTitle, ExportOptions exportOptions)
 	{
 		var zipData = await ZipFramesAsync(renderedFrames);
 
-		await httpClient.PostAsJsonAsync($"{exportPath}/{animationTitle}", zipData);
+		var exportOptionsQuery = new Dictionary<string, string>
+		{
+			{ "frameRate", exportOptions.FrameRate.ToString() },
+			{ "width", exportOptions.Width.ToString() },
+			{ "height", exportOptions.Height.ToString() },
+			{ "format", exportOptions.Format.ToString() },
+			{ "quality", exportOptions.Quality.ToString() },
+			{ "includeBackground", exportOptions.IncludeBackground.ToString() },
+			{ "backgroundColor", exportOptions.BackgroundColor },
+			{ "spriteSheetColumns", exportOptions.SpriteSheetColumns.ToString() },
+			{ "optimize", exportOptions.Optimise.ToString() }
+		};
+
+		var queryString = string.Join("&", exportOptionsQuery
+			.Where(kv => !string.IsNullOrEmpty(kv.Value))
+			.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
+
+		var response = await httpClient.PostAsJsonAsync($"{exportPath}/{animationTitle}?{queryString}", zipData);
+		response.EnsureSuccessStatusCode();
+
+		var fileBytes = await response.Content.ReadAsByteArrayAsync();
+		var base64 = Convert.ToBase64String(fileBytes);
+		string fileExtension = exportOptions.Format switch
+		{
+			ExportFormats.PNGSequence => "zip",
+			ExportFormats.SpriteSheet => "png",
+			ExportFormats.GIF => "gif",
+			ExportFormats.MP4 => "mp4",
+			ExportFormats.WebP => "webp",
+			_ => "bin"
+		};
+		string fileName = $"{animationTitle}.{fileExtension}";
+
+		await jsRuntime.InvokeVoidAsync("saveAsFile", fileName, base64);
 	}
 
 	static async Task<byte[]> ZipFramesAsync(IList<SKData> frames)
