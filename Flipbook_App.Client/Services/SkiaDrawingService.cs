@@ -1,7 +1,7 @@
 using FlipBook_Library.Core;
 using FlipBook_Library.DTOs;
 using SkiaSharp;
-
+using FlipBook_Library.Services;
 namespace Flipbook_App.Client.Services;
 
 public class SkiaDrawingService : ISkiaDrawingService
@@ -26,6 +26,13 @@ public class SkiaDrawingService : ISkiaDrawingService
 	bool isDrawing;
 
 	Stack<DrawActionDTO> undoneActions = [];
+
+	private readonly IDrawShapeService _drawShapeService;
+
+	public SkiaDrawingService(IDrawShapeService drawShapeService)
+	{
+		_drawShapeService = drawShapeService;
+	}
 
 	public void HandlePointerDown(float x, float y)
 	{
@@ -208,81 +215,8 @@ public class SkiaDrawingService : ISkiaDrawingService
 		};
 	}
 
-	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	private void DrawShape(SKCanvas canvas, DrawActionDTO shape)
 	{
-		using var paint = GetShapePaint(shape);
-
-		if (shape.Brush == BrushType.Circle && shape.Vertices.Count >= 2)
-		{
-			// Draw circle
-			var center = shape.Vertices[0];
-			var radiusPoint = shape.Vertices[1];
-			var radius = (float)Math.Sqrt(
-				Math.Pow(radiusPoint.X - center.X, 2) + 
-				Math.Pow(radiusPoint.Y - center.Y, 2)
-			);
-
-			canvas.DrawCircle(center.X, center.Y, radius, paint);
-
-			// Only draw physics indicator if it's a physics object
-			if (shape.IsPhysicsObject)
-			{
-				using var physicsPaint = new SKPaint
-				{
-					Style = SKPaintStyle.Stroke,
-					Color = SKColors.Orange,
-					StrokeWidth = 1,
-					PathEffect = SKPathEffect.CreateDash([3, 3], 0)
-				};
-				canvas.DrawCircle(center.X, center.Y, radius + 2, physicsPaint);
-			}
-		}
-		else
-		{
-			// Draw lines (pen)
-			for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
-			{
-				var currentPoint = shape.Vertices[pointIndex];
-				var previousPoint = shape.Vertices[pointIndex - 1];
-
-				canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), paint);
-			}
-
-			// Only draw physics indicator for pen strokes if it's a physics object
-			if (shape.IsPhysicsObject && shape.Vertices.Count > 1)
-			{
-				using var physicsPaint = new SKPaint
-				{
-					Style = SKPaintStyle.Stroke,
-					Color = SKColors.Orange,
-					StrokeWidth = 1,
-					PathEffect = SKPathEffect.CreateDash([2, 2], 0)
-				};
-
-				for (var pointIndex = 1; pointIndex < shape.Vertices.Count; pointIndex++)
-				{
-					var currentPoint = shape.Vertices[pointIndex];
-					var previousPoint = shape.Vertices[pointIndex - 1];
-
-					canvas.DrawLine(new SKPoint(previousPoint.X, previousPoint.Y), new SKPoint(currentPoint.X, currentPoint.Y), physicsPaint);
-				}
-			}
-		}
-	}
-
-	static SKPaint GetShapePaint(DrawActionDTO shape)
-	{
-		var color = new SKColor((byte)shape.BrushColour.R, (byte)shape.BrushColour.G, (byte)shape.BrushColour.B, (byte)shape.BrushColour.A);
-
-		return new SKPaint
-		{
-			Style = SKPaintStyle.Stroke,
-			StrokeCap = SKStrokeCap.Round,
-
-			Color = color,
-			StrokeWidth = shape.BrushSize,
-
-			IsAntialias = true
-		};
+		_drawShapeService.DrawShape(canvas, shape);
 	}
 }

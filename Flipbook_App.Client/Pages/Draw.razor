@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
 @using SkiaSharp
+@using FlipBook_Library.Services;
 @using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
 @inject DrawActionApiService ApiService
@@ -231,7 +232,7 @@
 </div>
 
 @code {
-    SkiaDrawingService drawingService = new();
+    SkiaDrawingService drawingService = new(new DrawShapeService());
     SKCanvasView? canvasView;
 
     int activeFrameIndex = 0;

@@ -1,4 +1,6 @@
-﻿namespace FlipBook_Library.DTOs;
+﻿using FlipBook_Library.Core;
+
+namespace FlipBook_Library.DTOs;
 
 public class PhysicsSettings
 {
@@ -13,4 +15,7 @@ public class PhysicsSettings
 	public float Width { get; set; }
 
 	public float Height { get; set; }
+	public Vertex TopLeftCanvasCoordinates { get; set; }
+	public int HeightofCanvasInPixels { get; set; }
+	public int WidthofCanvasInPixels { get; set; }
 }

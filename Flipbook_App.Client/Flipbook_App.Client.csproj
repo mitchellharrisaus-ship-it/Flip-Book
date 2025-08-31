@@ -11,7 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.19" PrivateAssets="all" />
     <PackageReference Include="SkiaSharp.Views.Blazor" Version="2.88.6" />
   </ItemGroup>
-
+	
   <ItemGroup>
     <ProjectReference Include="..\FlipBook_Library\FlipBook_App.Shared.csproj" />
   </ItemGroup>
