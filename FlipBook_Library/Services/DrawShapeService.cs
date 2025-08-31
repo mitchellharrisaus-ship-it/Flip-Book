@@ -62,6 +62,26 @@ public class DrawShapeService : IDrawShapeService
 		};
 	}
 
+	public IList<Vertex> GenerateCircleVertices(Vertex center, float radiusInPixels)
+	{
+		// Generate vertices compatible with the existing circle drawing system
+		// The drawing system expects exactly 2 vertices:
+		// - Vertex[0]: center point
+		// - Vertex[1]: point on circumference (used to calculate radius)
+		
+		var vertices = new List<Vertex>
+		{
+			center, // Center point
+			new Vertex 
+			{ 
+				X = center.X + radiusInPixels, // Point on the right edge of the circle
+				Y = center.Y 
+			}
+		};
+
+		return vertices;
+	}
+
 	#region Private Shape Drawing Methods
 
 	private void DrawCircle(SKCanvas canvas, IList<Vertex> vertices, SKPaint paint, bool isPhysicsObject)

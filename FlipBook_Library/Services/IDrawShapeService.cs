@@ -33,4 +33,12 @@ public interface IDrawShapeService
 	/// <param name="strokeWidth">The stroke width</param>
 	/// <returns>A configured SKPaint object</returns>
 	SKPaint CreateShapePaint(Colour color, int strokeWidth);
+
+	/// <summary>
+	/// Generates circle vertices compatible with the drawing system without drawing
+	/// </summary>
+	/// <param name="center">The center point of the circle</param>
+	/// <param name="radiusInPixels">The radius of the circle in pixels</param>
+	/// <returns>A list of vertices that represent the circle (center + radius point)</returns>
+	IList<Vertex> GenerateCircleVertices(Vertex center, float radiusInPixels);
 }
