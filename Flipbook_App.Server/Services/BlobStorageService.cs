@@ -1,6 +1,6 @@
-﻿using Flipbook_App.Models.DTOs;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using System.Text.Json;
+using FlipBook_Library.DTOs;
 
 namespace Flipbook_App.Services;
 

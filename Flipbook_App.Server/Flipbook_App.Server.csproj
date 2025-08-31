@@ -1,0 +1,4 @@
+<!-- Add this ItemGroup -->
+<ItemGroup>
+  <ProjectReference Include="..\Flipbook_App.Shared\Flipbook_App.Shared.csproj" />
+</ItemGroup>

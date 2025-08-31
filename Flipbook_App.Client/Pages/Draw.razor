@@ -1,8 +1,12 @@
 ﻿@page "/"
+@using FlipBook_Library.Core
+@using FlipBook_Library.DTOs
+@using FlipBook_Library.Enums
 @using Flipbook_App.Client.Services
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
 @using SkiaSharp
+@using FlipBook_Library.Services;
 @using SkiaSharp.Views.Blazor
 @inject IJSRuntime JSRuntime
 @inject DrawActionApiService ApiService
@@ -66,10 +70,44 @@
             <button @onclick="ClearCanvas">Clear</button>
             <button class="UndoRedo" @onclick="Undo"> Undo </button>
             <button class="UndoRedo" @onclick="Redo"> Redo </button>
-            <button @onclick="Save" >Save</button>
+            
+            <!-- Drawing Mode Selection Tools -->
+            <div class="brush-tools">
+                <button class="brush-btn @(currentDrawingMode == DrawingMode.Select ? "active" : "")" 
+                        @onclick="() => SetDrawingMode(DrawingMode.Select)" title="Select Tool">
+                    ↖️ Select
+                </button>
+                <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen ? "active" : "")" 
+                        @onclick="() => SetDrawingMode(DrawingMode.Pen)" title="Pen Tool">
+                    ✏️ Pen
+                </button>
+                <button class="brush-btn @(currentDrawingMode == DrawingMode.Shape ? "active" : "")" 
+                        @onclick="() => SetDrawingMode(DrawingMode.Shape)" title="Shape Tool">
+                    🔷 Shape
+                </button>
+            </div>
+        </div>
 
-            <button @onclick="Export">Export 1</button>
+        <!-- Physics Settings moved above canvas -->
+        <div class="physics-controls">
+            <!-- Physics Enabled Checkbox -->
+            <div class="physics-checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" @onchange="OnPhysicsEnabledChanged" />
+                    Physics Enabled
+                </label>
+            </div>
 
+            <!-- Physics Applies On Shapes Checkbox (only visible when physics is enabled) -->
+            @if (isPhysicsEnabled)
+            {
+                <div class="physics-checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @onchange="OnPhysicsAppliesOnShapesChanged" />
+                        Physics Applies On Shapes
+                    </label>
+                </div>
+            }
         </div>
 
         <SKCanvasView id="canvasArea" class="canvas" @ref="canvasView" 
@@ -79,16 +117,140 @@
         @onpointerdown="PointerDown"
         @onpointerup="PointerUp"
         @onpointerleave="PointerLeave"
-        style="touch-action: none; width:800px; height:600px;" />
+        style="@canvasStyle" />
+    </div>
+
+    <!-- Right Sidebar for Shape and Physics Settings -->
+    <div class="settings-sidebar">
+        <div class="sidebar-header">
+            <h4>Settings</h4>
+        </div>
+
+        <div class="settings-content">
+            <!-- Shape Selection Section -->
+            <div class="settings-section">
+                <h5>Shape Settings</h5>
+                
+                <div class="setting-group">
+                    <label for="shapeDropdown">Preset Shapes:</label>
+                    <select id="shapeDropdown" @onchange="OnShapeSelectionChanged" value="@selectedShape" disabled="@(currentDrawingMode != DrawingMode.Shape)">
+                        <option value="@BrushType.Circle">Circle</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Current Mode: <span class="mode-indicator">@currentDrawingMode</span></label>
+                </div>
+            </div>
+
+            <!-- Physics Settings Section -->
+            @if (isPhysicsEnabled)
+            {
+                <div class="settings-section">
+                    <h5>Physics Settings</h5>
+                    
+                    <div class="setting-group">
+                        <label for="timeToMap">Time To Map (s):</label>
+                        <input type="number" id="timeToMap" step="0.1" @bind="currentPhysicsSettings.TimeToMap" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="numberOfFrames">Number Of Frames:</label>
+                        <input type="number" id="numberOfFrames" @bind="currentPhysicsSettings.NumberOfFrames" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="frameWidth">Width of Frame (m):</label>
+                        <input type="number" id="frameWidth" step="1" @bind="currentPhysicsSettings.Width" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="frameHeight">Height of Frame (m):</label>
+                        <input type="number" id="frameHeight" step="1" @bind="currentPhysicsSettings.Height" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="currentPhysicsSettings.HasBoarder" />
+                            Has Border
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="gravity">Gravity (ms-2):</label>
+                        <input type="number" id="gravity" step="0.1" @bind="currentPhysicsSettings.Gravity" />
+                    </div>
+                </div>
+            }
+
+            <!-- Selected Object Settings (only visible when object is selected) -->
+            @if (selectedPhysicsObject != null)
+            {
+                <div class="settings-section">
+                    <h5>Selected Physics Object</h5>
+                    
+                    <div class="setting-group">
+                        <label for="objDensity">Density:</label>
+                        <input type="number" id="objDensity" step="0.1" @bind="selectedPhysicsObject.Density" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="objFriction">Friction:</label>
+                        <input type="number" id="objFriction" step="0.1" @bind="selectedPhysicsObject.Friction" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="objMass">Mass:</label>
+                        <input type="number" id="objMass" step="0.1" @bind="selectedPhysicsObject.Mass" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="objVelX">Initial Velocity X:</label>
+                        <input type="number" id="objVelX" step="0.1" @bind="selectedPhysicsObject.InitialVelocityX" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="objVelY">Initial Velocity Y:</label>
+                        <input type="number" id="objVelY" step="0.1" @bind="selectedPhysicsObject.InitialVelocityY" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="selectedPhysicsObject.IsStatic" />
+                            Is Static
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <button class="btn btn-secondary" @onclick="DeselectObject">Deselect Object</button>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
 @code {
-    SkiaDrawingService drawingService = new();
+    SkiaDrawingService drawingService = new(new DrawShapeService());
     SKCanvasView? canvasView;
     SKCanvas? canvas;
 
     int activeFrameIndex = 0;
+    BrushType selectedShape = BrushType.Circle;
+    DrawingMode currentDrawingMode = DrawingMode.Select; // Default to Select mode
+    bool isPhysicsEnabled = false;
+    bool physicsAppliesOnShapes = false;
+    PhysicsObjectSettings? selectedPhysicsObject = null;
+
+    PhysicsSettings currentPhysicsSettings = new()
+    {
+        TimeToMap = 1.0f,
+        NumberOfFrames = 60,
+        HasBoarder = true,
+        Gravity = 9.8f,
+        Width = 800.0f,     //Default to current canvas width
+        Height = 600.0f     //Default to current canvas height
+    };
 
     const string defaultTitle = "My Animation";
     string AnimationTitle { get; set; } = defaultTitle;
@@ -99,6 +261,9 @@
     float canvasTop = 0f;
 
     record DomRect(double left, double top, double width, double height);
+
+    // Computed property for canvas style
+    string canvasStyle => $"touch-action: none; width: 800px; height: 600px; cursor: {GetCursorStyle()};";
 
     // Use JS runtime to get the bounding rect of the canvas, this information is not exposed by SkiaSharp.
     // Script is defined in wwwroot/js/canvasHelper.js
@@ -112,6 +277,84 @@
             scaleX = 800f / (float)rect.width;   // CSS width / actual bounding width
             scaleY = 600f / (float)rect.height;  // CSS height / actual bounding height
         }
+    }
+
+    string GetCursorStyle()
+    {
+        return currentDrawingMode switch
+        {
+            DrawingMode.Select => "default",
+            DrawingMode.Pen => "crosshair",
+            DrawingMode.Shape => "crosshair",
+            _ => "default"
+        };
+    }
+
+    void OnShapeSelectionChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<BrushType>(e.Value?.ToString(), out var brushType))
+        {
+            selectedShape = brushType;
+            // If we're in shape mode, update the active brush
+            if (currentDrawingMode == DrawingMode.Shape)
+            {
+                drawingService.ActiveBrush = selectedShape;
+            }
+        }
+    }
+
+    void OnPhysicsEnabledChanged(ChangeEventArgs e)
+    {
+        isPhysicsEnabled = (bool)(e.Value ?? false);
+        drawingService.IsPhysicsEnabled = isPhysicsEnabled;
+        drawingService.CurrentPhysicsSettings = isPhysicsEnabled ? currentPhysicsSettings : null;
+
+        // Reset physics applies on shapes when physics is disabled
+        if (!isPhysicsEnabled)
+        {
+            physicsAppliesOnShapes = false;
+            drawingService.PhysicsAppliesOnShapes = false;
+        }
+
+        StateHasChanged();
+    }
+
+    void OnPhysicsAppliesOnShapesChanged(ChangeEventArgs e)
+    {
+        physicsAppliesOnShapes = (bool)(e.Value ?? false);
+        drawingService.PhysicsAppliesOnShapes = physicsAppliesOnShapes;
+        StateHasChanged();
+    }
+
+    void SetDrawingMode(DrawingMode mode)
+    {
+        currentDrawingMode = mode;
+
+        // Update the drawing service based on mode
+        switch (mode)
+        {
+            case DrawingMode.Select:
+                drawingService.IsDrawingEnabled = false;
+                break;
+            case DrawingMode.Pen:
+                drawingService.IsDrawingEnabled = true;
+                drawingService.ActiveBrush = BrushType.Pen;
+                selectedPhysicsObject = null; // Clear selection when switching to drawing mode
+                break;
+            case DrawingMode.Shape:
+                drawingService.IsDrawingEnabled = true;
+                drawingService.ActiveBrush = selectedShape;
+                selectedPhysicsObject = null; // Clear selection when switching to drawing mode
+                break;
+        }
+
+        StateHasChanged();
+    }
+
+    void DeselectObject()
+    {
+        selectedPhysicsObject = null;
+        StateHasChanged();
     }
 
     void CreateNewFrame()
@@ -151,24 +394,128 @@
     void PointerDown(PointerEventArgs e)
     {
         var mousePosition = GetMousePosition(e);
+
+        // Handle Select mode - check for physics object selection
+        if (currentDrawingMode == DrawingMode.Select)
+        {
+            HandleObjectSelection(mousePosition.X, mousePosition.Y);
+            return;
+        }
+
+        // Handle drawing modes
         drawingService.HandlePointerDown(mousePosition.X, mousePosition.Y);
     }
 
     void PointerUp(PointerEventArgs e)
     {
+        // Only process drawing if not in select mode
+        if (currentDrawingMode == DrawingMode.Select)
+            return;
+
+        // if (drawingService.CurrentShape != null)
+        // {
+        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        // }
+
         drawingService.HandlePointerUp();
+        RedrawCanvas(); // Ensure shapes are rendered properly
     }
 
     void PointerLeave(PointerEventArgs e)
     {
+        // Only process drawing if not in select mode
+        if (currentDrawingMode == DrawingMode.Select)
+            return;
+
+        // if (drawingService.CurrentShape != null)
+        // {
+        //     ApiService.SendDrawAction(drawingService.CurrentShape, testAnimationName);
+        // }
+
         drawingService.HandlePointerUp();
+        RedrawCanvas(); // Ensure shapes are rendered properly
     }
 
     void PointerMove(PointerEventArgs e)
     {
+        // Only allow drawing if not in select mode
+        if (currentDrawingMode == DrawingMode.Select)
+            return;
+
         var mousePosition = GetMousePosition(e);
         drawingService.HandlePointerMove(mousePosition.X, mousePosition.Y);
         RedrawCanvas();
+    }
+
+    void HandleObjectSelection(float x, float y)
+    {
+        // Find physics objects at the clicked position
+        var clickedObject = FindPhysicsObjectAtPosition(x, y);
+
+        if (clickedObject != null)
+        {
+            // Initialize PhysicsSettings if it doesn't exist
+            if (clickedObject.PhysicsSettings == null)
+            {
+                clickedObject.PhysicsSettings = new();
+            }
+            
+            selectedPhysicsObject = clickedObject.PhysicsSettings;
+            StateHasChanged();
+        }
+        else
+        {
+            selectedPhysicsObject = null;
+            StateHasChanged();
+        }
+    }
+
+    DrawActionDTO? FindPhysicsObjectAtPosition(float x, float y)
+    {
+        // Check all physics objects in the current frame to see if click position intersects
+        foreach (var action in drawingService.CurrentFrame.Actions.Reverse())
+        {
+            if (!action.IsPhysicsObject) continue;
+
+            if (action.Brush == BrushType.Circle && action.Vertices.Count >= 2)
+            {
+                // Check if click is inside circle
+                var center = action.Vertices[0];
+                var radiusPoint = action.Vertices[1];
+                var radius = (float)Math.Sqrt(
+                    Math.Pow(radiusPoint.X - center.X, 2) + 
+                    Math.Pow(radiusPoint.Y - center.Y, 2)
+                );
+
+                var distance = Math.Sqrt(
+                    Math.Pow(x - center.X, 2) + 
+                    Math.Pow(y - center.Y, 2)
+                );
+
+                if (distance <= radius)
+                {
+                    return action;
+                }
+            }
+            else
+            {
+                // Check if click is near pen stroke (simple proximity check)
+                foreach (var vertex in action.Vertices)
+                {
+                    var distance = Math.Sqrt(
+                        Math.Pow(x - vertex.X, 2) + 
+                        Math.Pow(y - vertex.Y, 2)
+                    );
+
+                    if (distance <= action.BrushSize + 5) // 5px tolerance
+                    {
+                        return action;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     SKPoint GetMousePosition(PointerEventArgs e) 

@@ -1,4 +1,4 @@
-﻿using Flipbook_App.Client.Models.DTOs;
+﻿using FlipBook_Library.DTOs;
 using SkiaSharp;
 using System.IO.Compression;
 using System.Net.Http.Json;

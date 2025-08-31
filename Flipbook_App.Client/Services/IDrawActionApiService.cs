@@ -1,5 +1,5 @@
-﻿using Flipbook_App.Client.Models.DTOs;
-using SkiaSharp;
+﻿using SkiaSharp;
+using FlipBook_Library.DTOs;
 
 namespace Flipbook_App.Client.Services;
 
