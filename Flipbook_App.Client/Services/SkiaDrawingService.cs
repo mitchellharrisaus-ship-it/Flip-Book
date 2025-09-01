@@ -413,7 +413,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 	}
 
-	public IList<SKData> RenderAnimation(int renderQuality = 100, int width = 800, int height = 600)
+	public IList<SKData> RenderAnimation(int renderQuality = 100, int width = 700, int height = 700)
 	{
 		var renderedFrames = new List<SKData>();
 
