@@ -7,4 +7,6 @@ public class Animation
 	public required AnimationMetaData MetaData { get; set; }
 
 	public required IList<Frame> Frames { get; set; }
+
+	public List<string> ThumbnailUrls { get; set; } = new();
 }

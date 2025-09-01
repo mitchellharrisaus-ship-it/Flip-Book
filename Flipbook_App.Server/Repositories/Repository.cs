@@ -18,7 +18,7 @@ public class Repository<T> : IRepository<T> where T : class
 		context.Set<T>().Add(entity);
 	}
 
-	public T? GetById(int id)
+	public T? GetById(Guid id)
 	{
 		return context.Set<T>().Find(id);
 	}

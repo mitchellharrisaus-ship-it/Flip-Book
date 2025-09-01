@@ -1,6 +1,7 @@
 ﻿using Azure.Storage.Blobs;
 using System.Text.Json;
 using FlipBook_Library.DTOs;
+using Azure.Storage.Sas;
 
 namespace Flipbook_App.Services;
 
@@ -8,6 +9,7 @@ public class BlobStorageService : IBlobStorageService
 {
 	const string metadataFilePrefix = "Metadata";
 	const string actionsFolderName = "Actions";
+	const string thumbnailsFolderName = "Thumbnails";
 
 	readonly BlobContainerClient containerClient;
 
@@ -36,11 +38,6 @@ public class BlobStorageService : IBlobStorageService
 		var metaDataName = $"{animation.AnimationID}/{metadataFilePrefix}.json";
 		using var metadataStream = new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(animation.MetaData));
 		await containerClient.UploadBlobAsync(metaDataName, metadataStream);
-	}
-
-	public async Task UpdateAnimation(Animation animation)
-	{
-		await UploadAnimation(animation);
 	}
 
 	public async Task<Animation> DownloadAnimation(Guid animationID)
@@ -84,5 +81,37 @@ public class BlobStorageService : IBlobStorageService
 		}
 
 		return animation;
+	}
+
+	public async Task UploadThumbnails(Guid animationID, List<byte[]> thumbnails)
+	{
+		for (var thumbnailIndex = 0; thumbnailIndex < thumbnails.Count; thumbnailIndex++)
+		{
+			var blobName = $"{animationID}/{thumbnailsFolderName}/Thumbnail_{thumbnailIndex}.webp";
+			var blobClient = containerClient.GetBlobClient(blobName);
+
+			using var stream = new MemoryStream(thumbnails[thumbnailIndex]);
+			await blobClient.UploadAsync(stream, overwrite: true);
+		}
+	}
+
+	public async Task<List<Uri>> GetThumbnails(Guid animationID)
+	{
+		var uris = new List<Uri>();
+
+		await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{animationID}/{thumbnailsFolderName}/"))
+		{
+			var blobClient = containerClient.GetBlobClient(blob.Name);
+
+			// Generate a SAS token valid for 1 hour
+			var sasUri = blobClient.GenerateSasUri(
+				BlobSasPermissions.Read,
+				DateTimeOffset.UtcNow.AddHours(1)
+			);
+
+			uris.Add(sasUri);
+		}
+
+		return uris;
 	}
 }

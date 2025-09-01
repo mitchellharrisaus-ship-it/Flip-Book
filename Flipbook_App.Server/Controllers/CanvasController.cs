@@ -1,11 +1,9 @@
 ﻿using Flipbook_App.Repositories;
 using Flipbook_App.Services;
 using FlipBook_App.Shared.DTOs;
-using FlipBook_App.Shared.Enums;
 using FlipBook_Library.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.IO.Compression;
 
 namespace Flipbook_App.Controllers;
 
@@ -32,32 +30,25 @@ public class CanvasController : ControllerBase
 		var loggedInUser = User?.Identity?.Name;
 		if (loggedInUser == null) return Unauthorized("User must be logged in to save animations.");
 		
-		try
+		var user = repositoryManager.Users.GetByUsername(loggedInUser);
+		if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}");
+
+		var existingAnimationReference = repositoryManager.Animations.GetByTitleAndUserID(animationTitle, user.Id);
+
+		var animation = new Animation
 		{
-			var user = repositoryManager.Users.GetByUsername(loggedInUser);
-			if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}");
-
-			var existingAnimationReference = repositoryManager.Animations.GetByTitleAndUserID(animationTitle, user.Id);
-
-			var animation = new Animation
+			AnimationID = existingAnimationReference?.AnimationID ?? Guid.NewGuid(),
+			Frames = animationFrames.ToList(),
+			MetaData = new AnimationMetaData
 			{
-				AnimationID = existingAnimationReference?.AnimationID ?? Guid.NewGuid(),
-				Frames = animationFrames.ToList(),
-				MetaData = new AnimationMetaData
-				{
-					UserID = user.Id,
-				}
-			};
+				UserID = user.Id,
+			}
+		};
 
-			await blobService.UploadAnimation(animation);
-			repositoryManager.Animations.CreateIfNotExists(animation, animationTitle);
+		await blobService.UploadAnimation(animation);
+		repositoryManager.Animations.CreateIfNotExists(animation, animationTitle);
 
-			await repositoryManager.SaveChangesAsync();
-		}
-		catch (Exception ex)
-		{
-			return BadRequest($"Failed to upload animation: {ex.Message}");
-		}
+		await repositoryManager.SaveChangesAsync();
 
 		return Ok("Successfully saved animation");
 	}
@@ -67,16 +58,21 @@ public class CanvasController : ControllerBase
 	[Authorize]
 	public async Task<IActionResult> LoadAnimation(string animationID)
 	{
-		try
+		var downloadedAnimation = await blobService.DownloadAnimation(Guid.Parse(animationID));
+
+		// Query the animation reference to get the title
+		var animationReference = repositoryManager.Animations.GetById(Guid.Parse(animationID));
+
+		if (animationReference == null)
 		{
-			var downloadedAnimation = await blobService.DownloadAnimation(Guid.Parse(animationID));
-		
-			return Ok(downloadedAnimation);
+			return NotFound($"Animation reference not found for ID {animationID}");
 		}
-		catch (Exception ex)
+
+		return Ok(new AnimationLoadResponse
 		{
-			return BadRequest($"Failed to download animation: {ex.Message}");
-		}
+			Title = animationReference.Title,
+			Animation = downloadedAnimation
+		});
 	}
 
 	[Route("title/{currentTitle}")]
@@ -87,26 +83,19 @@ public class CanvasController : ControllerBase
 		var loggedInUser = User?.Identity?.Name;
 		if (loggedInUser == null) return Unauthorized("User must be logged in to generate animation titles.");
 
-		try
+		var user = repositoryManager.Users.GetByUsername(loggedInUser);
+		if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}");
+
+		var validTitle = currentTitle;
+		var suffix = 1;
+
+		while (repositoryManager.Animations.GetByTitleAndUserID(validTitle, user.Id) != null)
 		{
-			var user = repositoryManager.Users.GetByUsername(loggedInUser);
-			if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}");
-
-			var validTitle = currentTitle;
-			var suffix = 1;
-
-			while (repositoryManager.Animations.GetByTitleAndUserID(validTitle, user.Id) != null)
-			{
-				validTitle = $"{currentTitle} ({suffix})";
-				suffix++;
-			}
-
-			return Ok(validTitle);
+			validTitle = $"{currentTitle} ({suffix})";
+			suffix++;
 		}
-		catch (Exception ex)
-		{
-			return BadRequest($"Failed to generate valid title: {ex.Message}");
-		}
+
+		return Ok(validTitle);
 	}
 
 	[Route("title/{animationID}/{newTitle}")]
@@ -127,16 +116,26 @@ public class CanvasController : ControllerBase
 			return BadRequest("No frames provided for export.");
 		}
 
-		try
-		{
-			byte[] exportedBytes = await exportService.ExportAnimationAsync(compressedFrames, animationTitle, options);
+		var exportedBytes = await exportService.ExportAnimationAsync(compressedFrames, animationTitle, options);
 
-			// Send as downloadable file
-			return File(exportedBytes, "application/octet-stream");
-		}
-		catch (Exception ex)
-		{
-			return BadRequest($"Failed to export animation: {ex.Message}");
-		}
+		// Send as downloadable file
+		return File(exportedBytes, "application/octet-stream");
+	}
+
+	[Route("thumbnail/{animationTitle}")]
+	[HttpPost]
+	[Authorize]
+	public async Task<IActionResult> UploadThumbnails([FromBody] List<byte[]> thumbnails, string animationTitle)
+	{
+		var loggedInUser = User?.Identity?.Name; 
+		if (loggedInUser == null) return Unauthorized("User must be logged in to upload thumbnails."); 
+		
+		var user = repositoryManager.Users.GetByUsername(loggedInUser); 
+		if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}"); 
+		
+		var existingAnimationReference = repositoryManager.Animations.GetByTitleAndUserID(animationTitle, user.Id); 
+		if (existingAnimationReference == null) return NotFound($"Couldn't find animation by title {animationTitle} for user {loggedInUser}"); 
+		
+		await blobService.UploadThumbnails(existingAnimationReference.AnimationID, thumbnails); return Ok("Successfully uploaded thumbnails");
 	}
 }

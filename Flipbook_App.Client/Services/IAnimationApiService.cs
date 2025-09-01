@@ -10,7 +10,9 @@ public interface IAnimationApiService
 
 	Task Save(IEnumerable<Frame> animationFrames, string animationTitle);
 
-	Task<Animation> Load(Guid animationID);
+	Task<AnimationLoadResponse> Load(Guid animationID);
 
 	Task Export(IList<SKData> renderedFrames, string animationTitle, ExportOptions exportOptions);
+
+	Task UploadThumbnails(IList<byte[]> animationThumbnails, string AnimationTitle);
 }

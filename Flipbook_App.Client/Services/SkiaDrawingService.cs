@@ -408,6 +408,40 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 	}
 
+	public IList<byte[]> RenderThumbnails(int thumbWidth = 400, int thumbHeight = 400)
+	{
+		var thumbnails = new List<byte[]>();
+
+		var sampleFrames = Frames.Count > 3
+			? new() { Frames.First(), Frames.ElementAt(Frames.Count / 2), Frames.Last() }
+			: Frames;
+
+		foreach (var frame in sampleFrames)
+		{
+			// Create the thumbnail bitmap
+			using var thumbBitmap = new SKBitmap(thumbWidth, thumbHeight);
+			using (var thumbCanvas = new SKCanvas(thumbBitmap))
+			{
+				thumbCanvas.Clear(SKColors.White);
+
+				float scaleX = thumbWidth / 700f;
+				float scaleY = thumbHeight / 700f;
+
+				// Draw each shape directly scaled
+				foreach (var shape in frame.Actions)
+				{
+					DrawShapeScaled(thumbCanvas, shape, scaleX, scaleY);
+				}
+			}
+
+			using var thumbImage = SKImage.FromBitmap(thumbBitmap);
+			using var data = thumbImage.Encode(SKEncodedImageFormat.Webp, 80);
+			thumbnails.Add(data.ToArray());
+		}
+
+		return thumbnails;
+	}
+
 	public IList<SKData> RenderAnimation(int renderQuality = 100, int width = 700, int height = 700)
 	{
 		var renderedFrames = new List<SKData>();
@@ -425,15 +459,24 @@ public class SkiaDrawingService : ISkiaDrawingService
 				DrawShape(canvas, shape);
 			}
 
-			var rendered = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, renderQuality);
+			using var rendered = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, renderQuality);
 			renderedFrames.Add(rendered);
 		}
 
 		return renderedFrames;
 	}
 
-	//void DrawShape(SKCanvas canvas, DrawActionDTO shape)
-	//{
-	//	drawShapeService.DrawShape(canvas, shape);
-	//}
+	static void DrawShapeScaled(SKCanvas canvas, DrawActionDTO shape, float scaleX, float scaleY)
+	{
+		var newShape = new DrawActionDTO
+		{
+			Brush = shape.Brush,
+			BrushColour = shape.BrushColour,
+			BrushSize = Math.Max(1, (int)(shape.BrushSize * ((scaleX + scaleY) / 2))), // average scale for size
+			IsPhysicsObject = shape.IsPhysicsObject,
+			Vertices = shape.Vertices.Select(v => new Vertex(v.X * scaleX, v.Y * scaleY)).ToList()
+		};
+
+		DrawShape(canvas, newShape);
+	}
 }

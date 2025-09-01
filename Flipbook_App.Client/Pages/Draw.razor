@@ -327,7 +327,7 @@
         Gravity = 9.8f,
         Width = 700.0f,     //Changed to 700x700 for consistency
         Height = 700.0f,    //Changed to 700x700 for consistency
-        
+
         // Initialize pixel-based properties (will be updated in OnAfterRenderAsync)
         WidthofCanvasInPixels = 700,
         HeightofCanvasInPixels = 700,
@@ -376,11 +376,12 @@
         {
             try
             {
-                var animation = await ApiService.Load(AnimationID.Value);
-                if (animation != null)
+                var response = await ApiService.Load(AnimationID.Value);
+                if (response?.Animation != null)
                 {
-                    drawingService.LoadAnimation(animation);
+                    drawingService.LoadAnimation(response.Animation);
                     activeFrameIndex = drawingService.CurrentFrameIndex;
+                    AnimationTitle = response.Title;
                 }
                 RedrawCanvas();
             }
@@ -401,7 +402,7 @@
             X = canvasLeft,  // Actual X position on screen
             Y = canvasTop    // Actual Y position on screen
         };
-        
+
         // Canvas dimensions in pixels - Updated to 700x700
         currentPhysicsSettings.WidthofCanvasInPixels = 700;
         currentPhysicsSettings.HeightofCanvasInPixels = 700;
@@ -444,7 +445,7 @@
     {
         isPhysicsEnabled = (bool)(e.Value ?? false);
         drawingService.IsPhysicsEnabled = isPhysicsEnabled;
-        
+
         // Ensure canvas settings are current before assigning
         UpdatePhysicsCanvasSettings();
         drawingService.CurrentPhysicsSettings = isPhysicsEnabled ? currentPhysicsSettings : null;
@@ -582,7 +583,7 @@
             {
                 clickedObject.PhysicsSettings = new();
             }
-            
+
             selectedPhysicsObject = clickedObject.PhysicsSettings;
             StateHasChanged();
         }
@@ -679,9 +680,9 @@
     {
         // Make sure we have the most up-to-date canvas position
         UpdatePhysicsCanvasSettings();
-        
+
         frameGeneratorService.GenerateFrames(drawingService.Frames, currentPhysicsSettings);
-        
+
         Console.WriteLine($"Physics generation with canvas at: ({currentPhysicsSettings.TopLeftCanvasCoordinates.X}, {currentPhysicsSettings.TopLeftCanvasCoordinates.Y})");
         Console.WriteLine($"Canvas boundaries: width={currentPhysicsSettings.WidthofCanvasInPixels}, height={currentPhysicsSettings.HeightofCanvasInPixels}");
     }
@@ -692,9 +693,15 @@
         {
             AnimationTitle = defaultTitle;
         }
+
         StateHasChanged();
+
         try {
+            var animationThumbnails = drawingService.RenderThumbnails();
+
             await ApiService.Save(drawingService.Frames, AnimationTitle);
+            await ApiService.UploadThumbnails(animationThumbnails, AnimationTitle);
+
             await ToastService.ShowToast("Successfully saved animation!", ToastType.Success);
         }
         catch (Exception ex)

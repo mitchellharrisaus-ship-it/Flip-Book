@@ -2,7 +2,7 @@
 
 public interface IRepository<T> where T : class
 {
-	T? GetById(int id);
+	T? GetById(Guid id);
 
 	void Add(T entity);
 

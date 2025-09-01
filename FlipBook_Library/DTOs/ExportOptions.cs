@@ -6,9 +6,9 @@ public class ExportOptions
 {
 	public int FrameRate { get; set; } = 12;
 
-	public int Width { get; set; } = 800;
+	public int Width { get; set; } = 700;
 
-	public int Height { get; set; } = 600;
+	public int Height { get; set; } = 700;
 
 	public ExportFormats Format { get; set; } = ExportFormats.PNGSequence;
 

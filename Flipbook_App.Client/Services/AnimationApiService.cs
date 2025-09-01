@@ -16,6 +16,7 @@ public class AnimationApiService : IAnimationApiService
 	const string titlePath = $"{apiPath}/title";
 	const string loadPath = $"{apiPath}/load";
 	const string exportPath = $"{apiPath}/export";
+	const string thumbnail = $"{apiPath}/thumbnail";
 
 	readonly HttpClient httpClient;
 	readonly IJSRuntime jsRuntime;
@@ -38,7 +39,7 @@ public class AnimationApiService : IAnimationApiService
 		await httpClient.PostAsJsonAsync($"{savePath}/{animationTitle}", animationFrames);
 	}
 
-	public async Task<Animation> Load(Guid animationID)
+	public async Task<AnimationLoadResponse> Load(Guid animationID)
 	{
 		var response = await httpClient.GetAsync($"{loadPath}/{animationID}");
 
@@ -47,8 +48,13 @@ public class AnimationApiService : IAnimationApiService
 			throw new Exception("Failed to load animation data.");
 		}
 
-		var animation = await response.Content.ReadFromJsonAsync<Animation>();
-		return animation ?? throw new NullReferenceException("Animation data was null.");
+		var animation = await response.Content.ReadFromJsonAsync<AnimationLoadResponse>();
+		if (animation == null || animation.Animation == null)
+		{
+			throw new NullReferenceException("Animation data was null.");
+		}
+
+		return animation;
 	}
 
 	public async Task Export(IList<SKData> renderedFrames, string animationTitle, ExportOptions exportOptions)
@@ -106,5 +112,10 @@ public class AnimationApiService : IAnimationApiService
 		}
 
 		return ms.ToArray();
+	}
+
+	public async Task UploadThumbnails(IList<byte[]> animationThumbnails, string AnimationTitle)
+	{
+		await httpClient.PostAsJsonAsync($"{thumbnail}/{AnimationTitle}", animationThumbnails);
 	}
 }
