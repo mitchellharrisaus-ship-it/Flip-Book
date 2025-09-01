@@ -374,6 +374,29 @@
         if (isPhysicsEnabled && drawingService != null)
         {
             drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
+        }
+
+        Console.WriteLine($"Canvas positioned at: ({canvasLeft}, {canvasTop})");
+        Console.WriteLine($"Canvas size: {currentPhysicsSettings.WidthofCanvasInPixels}x{currentPhysicsSettings.HeightofCanvasInPixels}");
+    }
+
+    void UpdatePhysicsCanvasSettings()
+    {
+        // Set the actual screen coordinates where the canvas is positioned
+        currentPhysicsSettings.TopLeftCanvasCoordinates = new Vertex 
+        { 
+            X = canvasLeft,  // Actual X position on screen
+            Y = canvasTop    // Actual Y position on screen
+        };
+        
+        // Canvas dimensions in pixels
+        currentPhysicsSettings.WidthofCanvasInPixels = 800;
+        currentPhysicsSettings.HeightofCanvasInPixels = 600;
+
+        // Update the drawing service if physics is enabled
+        if (isPhysicsEnabled && drawingService != null)
+        {
+            drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
             scaleX = 800f / (float)rect.width;
             scaleY = 600f / (float)rect.height;
         }
@@ -659,6 +682,18 @@
             return;
         }
         RedrawCanvas();
+    }
+
+    // New GenerateFrames method - you can fill in the implementation
+    void GenerateFrames()
+    {
+        // Make sure we have the most up-to-date canvas position
+        UpdatePhysicsCanvasSettings();
+        
+        frameGeneratorService.GenerateFrames(drawingService.Frames, currentPhysicsSettings);
+        
+        Console.WriteLine($"Physics generation with canvas at: ({currentPhysicsSettings.TopLeftCanvasCoordinates.X}, {currentPhysicsSettings.TopLeftCanvasCoordinates.Y})");
+        Console.WriteLine($"Canvas boundaries: width={currentPhysicsSettings.WidthofCanvasInPixels}, height={currentPhysicsSettings.HeightofCanvasInPixels}");
     }
 
     // New GenerateFrames method - you can fill in the implementation
