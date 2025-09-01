@@ -264,7 +264,38 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 		using var paint = GetShapePaint(shape);
 
-		if (shape.Brush == BrushType.Eraser)
+		if (shape.Brush == BrushType.Circle)
+		{
+			// Circle: draw a proper circle using center and radius points
+			if (shape.Vertices.Count >= 2)
+			{
+				var center = shape.Vertices[0];
+				var radiusPoint = shape.Vertices[1];
+
+				// Calculate radius using distance formula
+				var radius = (float)Math.Sqrt(
+					Math.Pow(radiusPoint.X - center.X, 2) +
+					Math.Pow(radiusPoint.Y - center.Y, 2)
+				);
+
+				// Draw the main circle
+				canvas.DrawCircle(center.X, center.Y, radius, paint);
+
+				// Draw physics indicator if it's a physics object
+				if (shape.IsPhysicsObject)
+				{
+					using var physicsPaint = new SKPaint
+					{
+						Style = SKPaintStyle.Stroke,
+						Color = SKColors.Orange,
+						StrokeWidth = 1,
+						PathEffect = SKPathEffect.CreateDash([3, 3], 0)
+					};
+					canvas.DrawCircle(center.X, center.Y, radius + 2, physicsPaint);
+				}
+			}
+		}
+		else if (shape.Brush == BrushType.Eraser)
 		{
 			// Eraser: draw thick white lines to overwrite previous drawings
 			paint.Color = SKColors.White;

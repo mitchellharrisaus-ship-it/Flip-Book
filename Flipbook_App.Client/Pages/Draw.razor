@@ -9,7 +9,7 @@
 @using Microsoft.JSInterop
 @using SkiaSharp
 @using FlipBook_Library.Services;
-@using SkiaSharp.Views.Blazor
+@using SkiaSharp.Views.Blazor;
 @inject IJSRuntime JSRuntime
 @inject IAnimationApiService ApiService
 @inject NavigationManager Navigation
@@ -40,7 +40,7 @@
         <div class="canvas-list">
             @for (var frameIndex = 0; frameIndex < drawingService.Frames.Count(); frameIndex++)
             {
-                var localIndex = frameIndex; <!-- Prevent closure issue on select / delete frames -->
+                var localIndex = frameIndex; @* Prevent closure issue on select / delete frames *@
 
                 <div class="canvas-item @(frameIndex == activeFrameIndex ? "active" : "")"
                 @onclick="() => SelectFrame(localIndex)">
@@ -357,51 +357,6 @@
         }
     }
 
-    void UpdatePhysicsCanvasSettings()
-    {
-        // Set the actual screen coordinates where the canvas is positioned
-        currentPhysicsSettings.TopLeftCanvasCoordinates = new Vertex 
-        { 
-            X = canvasLeft,  // Actual X position on screen
-            Y = canvasTop    // Actual Y position on screen
-        };
-        
-        // Canvas dimensions in pixels
-        currentPhysicsSettings.WidthofCanvasInPixels = 800;
-        currentPhysicsSettings.HeightofCanvasInPixels = 600;
-
-        // Update the drawing service if physics is enabled
-        if (isPhysicsEnabled && drawingService != null)
-        {
-            drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
-        }
-
-        Console.WriteLine($"Canvas positioned at: ({canvasLeft}, {canvasTop})");
-        Console.WriteLine($"Canvas size: {currentPhysicsSettings.WidthofCanvasInPixels}x{currentPhysicsSettings.HeightofCanvasInPixels}");
-    }
-
-    void UpdatePhysicsCanvasSettings()
-    {
-        // Set the actual screen coordinates where the canvas is positioned
-        currentPhysicsSettings.TopLeftCanvasCoordinates = new Vertex 
-        { 
-            X = canvasLeft,  // Actual X position on screen
-            Y = canvasTop    // Actual Y position on screen
-        };
-        
-        // Canvas dimensions in pixels
-        currentPhysicsSettings.WidthofCanvasInPixels = 800;
-        currentPhysicsSettings.HeightofCanvasInPixels = 600;
-
-        // Update the drawing service if physics is enabled
-        if (isPhysicsEnabled && drawingService != null)
-        {
-            drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
-            scaleX = 800f / (float)rect.width;
-            scaleY = 600f / (float)rect.height;
-        }
-    }
-
     protected override async Task OnInitializedAsync()
     {
         if (AnimationID.HasValue)
@@ -420,6 +375,7 @@
                 Console.WriteLine($"Error loading animation: {ex.Message}");
             }
         }
+    }
 
     void UpdatePhysicsCanvasSettings()
     {
@@ -438,28 +394,6 @@
         if (isPhysicsEnabled && drawingService != null)
         {
             drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
-            scaleX = 800f / (float)rect.width;
-            scaleY = 600f / (float)rect.height;
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (AnimationID.HasValue)
-        {
-            try
-            {
-                var animation = await ApiService.Load(AnimationID.Value);
-                if (animation != null)
-                {
-                    drawingService.LoadAnimation(animation);
-                    activeFrameIndex = drawingService.CurrentFrameIndex;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading animation: {ex.Message}");
-            }
         }
 
         Console.WriteLine($"Canvas positioned at: ({canvasLeft}, {canvasTop})");
@@ -725,19 +659,6 @@
         RedrawCanvas();
     }
 
-    // New GenerateFrames method - you can fill in the implementation
-    void GenerateFrames()
-    {
-        // Make sure we have the most up-to-date canvas position
-        UpdatePhysicsCanvasSettings();
-        
-        frameGeneratorService.GenerateFrames(drawingService.Frames, currentPhysicsSettings);
-        
-        Console.WriteLine($"Physics generation with canvas at: ({currentPhysicsSettings.TopLeftCanvasCoordinates.X}, {currentPhysicsSettings.TopLeftCanvasCoordinates.Y})");
-        Console.WriteLine($"Canvas boundaries: width={currentPhysicsSettings.WidthofCanvasInPixels}, height={currentPhysicsSettings.HeightofCanvasInPixels}");
-    }
-
-    // New GenerateFrames method - you can fill in the implementation
     void GenerateFrames()
     {
         // Make sure we have the most up-to-date canvas position
@@ -764,12 +685,6 @@
         {
             Console.WriteLine($"Error saving animation: {ex.Message}");
         }
-    }
-
-    void SelectTool(BrushType tool)
-    {
-        drawingService.ActiveBrush = tool;
-        StateHasChanged();
     }
 
     void SelectTool(BrushType tool)
