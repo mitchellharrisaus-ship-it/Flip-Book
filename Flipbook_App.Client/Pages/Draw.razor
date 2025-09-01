@@ -306,6 +306,8 @@
     bool physicsAppliesOnShapes = false;
     PhysicsObjectSettings? selectedPhysicsObject = null;
 
+    const float cursorVerticalOffset = 8f;
+
     PhysicsSettings currentPhysicsSettings = new()
     {
         TimeToMap = 1.0f,
@@ -629,7 +631,7 @@
     SKPoint GetMousePosition(PointerEventArgs e) 
     {
         var x = (e.ClientX - canvasLeft) * scaleX;
-        var y = (e.ClientY - canvasTop) * scaleY;
+        var y = (e.ClientY - canvasTop) * scaleY - cursorVerticalOffset;
         return new((float)x, (float)y);
     }
 

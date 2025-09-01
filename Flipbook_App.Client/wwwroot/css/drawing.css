@@ -42,6 +42,17 @@ body {
     border-radius: 12px;
 }
 
+#canvasArea {
+    width: 800px !important;
+    height: 600px !important;
+    min-width: 800px !important;
+    min-height: 600px !important;
+    max-width: 800px !important;
+    max-height: 600px !important;
+    box-sizing: border-box;
+    display: block;
+}
+
 .main-header {
     display: flex;
     align-items: center;
