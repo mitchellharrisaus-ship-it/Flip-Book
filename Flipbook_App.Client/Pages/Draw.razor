@@ -9,7 +9,7 @@
 @using Microsoft.JSInterop
 @using SkiaSharp
 @using FlipBook_Library.Services;
-@using SkiaSharp.Views.Blazor
+@using SkiaSharp.Views.Blazor;
 @inject IJSRuntime JSRuntime
 @inject IAnimationApiService ApiService
 @inject NavigationManager Navigation
@@ -40,7 +40,7 @@
         <div class="canvas-list">
             @for (var frameIndex = 0; frameIndex < drawingService.Frames.Count(); frameIndex++)
             {
-                var localIndex = frameIndex; <!-- Prevent closure issue on select / delete frames -->
+                var localIndex = frameIndex; @* Prevent closure issue on select / delete frames *@
 
                 <div class="canvas-item @(frameIndex == activeFrameIndex ? "active" : "")"
                 @onclick="() => SelectFrame(localIndex)">
@@ -149,6 +149,13 @@
                         <input type="checkbox" @onchange="OnPhysicsAppliesOnShapesChanged" />
                         Physics Applies On Shapes
                     </label>
+                </div>
+
+                <!-- Generate Physics Frames Button -->
+                <div class="physics-checkbox-group">
+                    <button class="btn btn-primary" @onclick="GenerateFrames" disabled="@(!isPhysicsEnabled)" title="Generate frames with physics applied">
+                        🚀 Generate Physics Frames
+                    </button>
                 </div>
             }
         </div>
@@ -289,6 +296,7 @@
     public Guid? AnimationID { get; set; }
 
     SkiaDrawingService drawingService = new(new DrawShapeService());
+    FrameGeneratorService frameGeneratorService = new(); // Add the service instance
     SKCanvasView? canvasView;
 
     int activeFrameIndex = 0;
@@ -304,8 +312,13 @@
         NumberOfFrames = 60,
         HasBoarder = true,
         Gravity = 9.8f,
-        Width = 800.0f,     //Default to current canvas width
-        Height = 600.0f     //Default to current canvas height
+        Width = 800.0f,     //Default to current canvas width in meters
+        Height = 600.0f,    //Default to current canvas height in meters
+        
+        // Initialize pixel-based properties (will be updated in OnAfterRenderAsync)
+        WidthofCanvasInPixels = 800,
+        HeightofCanvasInPixels = 600,
+        TopLeftCanvasCoordinates = new Vertex { X = 0f, Y = 0f } // Will be updated with actual coordinates
     };
 
     const string defaultTitle = "My Animation";
@@ -336,8 +349,11 @@
             var rect = await JSRuntime.InvokeAsync<DomRect>("getCanvasRect");
             canvasLeft = (float)rect.left;
             canvasTop = (float)rect.top;
-            scaleX = 800f / (float)rect.width;
-            scaleY = 600f / (float)rect.height;
+            scaleX = 800f / (float)rect.width;   // CSS width / actual bounding width
+            scaleY = 600f / (float)rect.height;  // CSS height / actual bounding height
+
+            // Update physics settings with the ACTUAL canvas position
+            UpdatePhysicsCanvasSettings();
         }
     }
 
@@ -359,6 +375,29 @@
                 Console.WriteLine($"Error loading animation: {ex.Message}");
             }
         }
+    }
+
+    void UpdatePhysicsCanvasSettings()
+    {
+        // Set the actual screen coordinates where the canvas is positioned
+        currentPhysicsSettings.TopLeftCanvasCoordinates = new Vertex 
+        { 
+            X = canvasLeft,  // Actual X position on screen
+            Y = canvasTop    // Actual Y position on screen
+        };
+        
+        // Canvas dimensions in pixels
+        currentPhysicsSettings.WidthofCanvasInPixels = 800;
+        currentPhysicsSettings.HeightofCanvasInPixels = 600;
+
+        // Update the drawing service if physics is enabled
+        if (isPhysicsEnabled && drawingService != null)
+        {
+            drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
+        }
+
+        Console.WriteLine($"Canvas positioned at: ({canvasLeft}, {canvasTop})");
+        Console.WriteLine($"Canvas size: {currentPhysicsSettings.WidthofCanvasInPixels}x{currentPhysicsSettings.HeightofCanvasInPixels}");
     }
 
     string GetCursorStyle()
@@ -389,6 +428,9 @@
     {
         isPhysicsEnabled = (bool)(e.Value ?? false);
         drawingService.IsPhysicsEnabled = isPhysicsEnabled;
+        
+        // Ensure canvas settings are current before assigning
+        UpdatePhysicsCanvasSettings();
         drawingService.CurrentPhysicsSettings = isPhysicsEnabled ? currentPhysicsSettings : null;
 
         // Reset physics applies on shapes when physics is disabled
@@ -615,6 +657,17 @@
             return;
         }
         RedrawCanvas();
+    }
+
+    void GenerateFrames()
+    {
+        // Make sure we have the most up-to-date canvas position
+        UpdatePhysicsCanvasSettings();
+        
+        frameGeneratorService.GenerateFrames(drawingService.Frames, currentPhysicsSettings);
+        
+        Console.WriteLine($"Physics generation with canvas at: ({currentPhysicsSettings.TopLeftCanvasCoordinates.X}, {currentPhysicsSettings.TopLeftCanvasCoordinates.Y})");
+        Console.WriteLine($"Canvas boundaries: width={currentPhysicsSettings.WidthofCanvasInPixels}, height={currentPhysicsSettings.HeightofCanvasInPixels}");
     }
 
     async Task Save()
