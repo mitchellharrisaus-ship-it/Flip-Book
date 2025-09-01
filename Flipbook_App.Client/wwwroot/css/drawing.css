@@ -946,3 +946,27 @@ label, input, select, button, span, div, h1, h2, h3, h4, h5, h6, p {
 .export-group input[type="range"]::-ms-tooltip {
     display: none;
 }
+
+.playback-btn {
+    background: #fff !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--blue-200) !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s, border 0.2s;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+    margin-left: 0 !important;
+    margin-top: 5px;
+}
+
+.playback-btn:hover:not(:disabled) {
+    background: var(--blue-50) !important;
+    border-color: var(--blue-300) !important;
+    color: var(--primary-blue-dark) !important;
+}
+
+.playback-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

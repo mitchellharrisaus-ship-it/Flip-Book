@@ -21,7 +21,7 @@ using Flipbook_App.Data;
 namespace Flipbook_App.Tests;
 
 [TestFixture]
-public class LoginNUnitTests
+public class LoginTests
 {
     private LoginModel CreateLoginModel(Mock<IUserRepository> userRepoMock = null)
     {

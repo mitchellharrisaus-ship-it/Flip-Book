@@ -76,9 +76,15 @@
     <div class="canvas-area">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <h3 style="margin: 0;">Frame @(activeFrameIndex + 1)</h3>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
                 <button class="UndoRedo" @onclick="Undo" title="Undo">⟲</button>
                 <button class="UndoRedo" @onclick="Redo" title="Redo">⟳</button>
+                <!-- Flipbook Playback Controls moved here -->
+                <button class="playback-btn" @onclick="PlayFlipbook" disabled="@isPlaying">▶️ Play</button>
+                <button class="playback-btn" @onclick="PauseFlipbook" disabled="@(!isPlaying)">⏸️ Pause</button>
+                <label style="margin-left: 10px;">FPS:
+                    <input type="number" min="1" max="60" style="width: 50px;" @bind="playbackFps" @bind:event="onchange" />
+                </label>
             </div>
         </div>
 
@@ -732,5 +738,67 @@
         {
             await ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
         }
+    }
+
+    // Flipbook playback state
+    bool isPlaying = false;
+    System.Timers.Timer? playbackTimer;
+    object playbackLock = new();
+
+    int _playbackFps = 12;
+    int playbackFps
+    {
+        get => _playbackFps;
+        set
+        {
+            if (value > 0 && value <= 60)
+            {
+                _playbackFps = value;
+                if (isPlaying)
+                {
+                    PauseFlipbook();
+                    PlayFlipbook();
+                }
+            }
+        }
+    }
+
+    void PlayFlipbook()
+    {
+        if (isPlaying || drawingService.Frames.Count <= 1)
+            return;
+        isPlaying = true;
+        playbackTimer = new System.Timers.Timer(1000.0 / playbackFps);
+        playbackTimer.Elapsed += (s, e) =>
+        {
+            lock (playbackLock)
+            {
+                InvokeAsync(() =>
+                {
+                    activeFrameIndex = (activeFrameIndex + 1) % drawingService.Frames.Count;
+                    drawingService.CurrentFrameIndex = activeFrameIndex;
+                    RedrawCanvas();
+                });
+            }
+        };
+        playbackTimer.AutoReset = true;
+        playbackTimer.Start();
+    }
+
+    void PauseFlipbook()
+    {
+        if (!isPlaying) return;
+        isPlaying = false;
+        playbackTimer?.Stop();
+        playbackTimer?.Dispose();
+        playbackTimer = null;
+    }
+
+    void StopFlipbook()
+    {
+        PauseFlipbook();
+        activeFrameIndex = 0;
+        drawingService.CurrentFrameIndex = 0;
+        RedrawCanvas();
     }
 }
