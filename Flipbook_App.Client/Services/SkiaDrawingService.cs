@@ -459,7 +459,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 				DrawShape(canvas, shape);
 			}
 
-			using var rendered = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, renderQuality);
+			var rendered = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, renderQuality);
 			renderedFrames.Add(rendered);
 		}
 
