@@ -147,14 +147,14 @@ body {
 
 .main-container {
     display: flex;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 65px);
     gap: 20px;
     background: linear-gradient(135deg, var(--blue-50) 0%, #ffffff 100%);
     font-family: var(--font-family);
 }
 
 .canvas-sidebar, .settings-sidebar {
-    width: 280px;
+    width: 340px;
     background: linear-gradient(180deg, var(--surface-white) 0%, var(--blue-50) 100%);
     border: 1px solid var(--blue-200);
     display: flex;
@@ -172,7 +172,6 @@ body {
 .settings-sidebar {
     display: flex;
     flex-direction: column;
-    height: 100vh;
     border-left: 1px solid var(--blue-200);
 }
 
