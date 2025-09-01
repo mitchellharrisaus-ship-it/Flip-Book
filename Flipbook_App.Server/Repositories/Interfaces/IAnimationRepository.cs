@@ -1,5 +1,5 @@
-﻿using Flipbook_App.Models;
-using Flipbook_App.Models.DTOs;
+﻿using FlipBook_App.Shared.Core;
+using FlipBook_Library.DTOs;
 
 namespace Flipbook_App.Repositories.Interfaces;
 

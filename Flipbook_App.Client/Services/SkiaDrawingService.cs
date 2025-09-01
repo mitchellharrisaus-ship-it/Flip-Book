@@ -79,9 +79,11 @@ public class SkiaDrawingService : ISkiaDrawingService
 				// Update the second point (radius endpoint)
 				CurrentShape.Vertices[1] = new Vertex(x, y);
 			}
+			Console.WriteLine("Circle");
 		}
 		else
 		{
+			Console.WriteLine("Pen");
 			// Regular pen drawing
 			CurrentShape?.Vertices.Add(new Vertex(x, y));
 		}
@@ -234,28 +236,6 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 
 		DrawShape(canvas, CurrentShape);
-	}
-
-	Guid animationID = Guid.Empty;
-	Guid userID = Guid.Empty;
-	string animationTitle = "MY FIRST ANIMATION";
-	int frameIndex = 0;
-	public Animation GetAnimation()
-	{
-		return new Animation
-		{
-			AnimationID = animationID,
-			MetaData = new AnimationMetaData()
-			{
-				UserID = userID,
-				CreatedAt = DateTime.UtcNow,
-				Title = animationTitle
-			},
-			Frames = new List<Frame>
-			{
-				new Frame() { Actions = CurrentFrame.Actions, FrameIndex = frameIndex }
-			}
-		};
 	}
 
 	private void DrawShape(SKCanvas canvas, DrawActionDTO shape)

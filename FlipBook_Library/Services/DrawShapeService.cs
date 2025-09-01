@@ -11,9 +11,15 @@ public class DrawShapeService : IDrawShapeService
 	{
 		using var paint = CreateShapePaint(shape.BrushColour, shape.BrushSize);
 
-		// Convert BrushType to PhysicsShape for unified handling
-		var shapeType = ConvertBrushTypeToPhysicsShape(shape.Brush);
+		// Handle pen drawing directly without converting to PhysicsShape
+		if (shape.Brush == BrushType.Pen)
+		{
+			DrawLines(canvas, shape.Vertices, paint, shape.IsPhysicsObject);
+			return;
+		}
 
+		// Convert other BrushTypes to PhysicsShape for unified handling
+		var shapeType = ConvertBrushTypeToPhysicsShape(shape.Brush);
 		DrawShape(canvas, shapeType, shape.Vertices, shape.BrushSize, shape.BrushColour, shape.BrushSize, shape.IsPhysicsObject);
 	}
 
@@ -54,6 +60,26 @@ public class DrawShapeService : IDrawShapeService
 			StrokeWidth = strokeWidth,
 			IsAntialias = true
 		};
+	}
+
+	public IList<Vertex> GenerateCircleVertices(Vertex center, float radiusInPixels)
+	{
+		// Generate vertices compatible with the existing circle drawing system
+		// The drawing system expects exactly 2 vertices:
+		// - Vertex[0]: center point
+		// - Vertex[1]: point on circumference (used to calculate radius)
+		
+		var vertices = new List<Vertex>
+		{
+			center, // Center point
+			new Vertex 
+			{ 
+				X = center.X + radiusInPixels, // Point on the right edge of the circle
+				Y = center.Y 
+			}
+		};
+
+		return vertices;
 	}
 
 	#region Private Shape Drawing Methods
@@ -150,8 +176,7 @@ public class DrawShapeService : IDrawShapeService
 		return brushType switch
 		{
 			BrushType.Circle => PhysicsShape.Circle,
-			BrushType.Pen => PhysicsShape.Circle, // Default fallback - could be a custom "Line" shape
-			_ => PhysicsShape.Circle
+			_ => PhysicsShape.Circle // Default fallback for other shapes
 		};
 	}
 

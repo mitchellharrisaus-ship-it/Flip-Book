@@ -1,4 +1,7 @@
-﻿using FlipBook_Library.DTOs;
+﻿using Flipbook_App.Repositories;
+using Flipbook_App.Services;
+using FlipBook_Library.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Flipbook_App.Controllers;
@@ -107,21 +110,6 @@ public class CanvasController : ControllerBase
 	public async Task<IActionResult> RenameAnimation(string animationID, string newTitle)
 	{
 		throw new NotImplementedException();
-	}
-
-		try
-		{
-			var fileContent = await System.IO.File.ReadAllBytesAsync(actionFile);
-			var actionStack = JsonSerializer.Deserialize<Stack<DrawActionDTO>>(fileContent) ?? new Stack<DrawActionDTO>();
-			actionStack.Push(redoneAction);
-
-			await System.IO.File.WriteAllBytesAsync(actionFile, JsonSerializer.SerializeToUtf8Bytes(actionStack));
-			return Ok("Successfully redid the draw action");
-		}
-		catch
-		{
-			return BadRequest("Failed to redo the action.");
-		}
 	}
 
 	//[Route("GenerateFrames")]
