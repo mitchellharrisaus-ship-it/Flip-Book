@@ -86,35 +86,35 @@
         <div class="toolbar">
             <!-- Existing toolbar buttons -->
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Select ? "active" : "")" 
-                    @onclick="() => SetDrawingMode(DrawingMode.Select)" title="Select Tool">
+            @onclick="() => SetDrawingMode(DrawingMode.Select)" title="Select Tool">
                 ↖️ Select
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Pen ? "active" : "")" 
-                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Pen; }" title="Pen Tool">
+            @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Pen; }" title="Pen Tool">
                 ✏️ Pen
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Eraser ? "active" : "")" 
-                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Eraser; }" title="Eraser Tool">
+            @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Eraser; }" title="Eraser Tool">
                 🧽 Eraser
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Marker ? "active" : "")" 
-                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Marker; }" title="Marker Tool">
+            @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Marker; }" title="Marker Tool">
                 🖊️ Marker
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Chain ? "active" : "")" 
-                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Chain; }" title="Chain Tool">
+            @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Chain; }" title="Chain Tool">
                 ⛓️ Chain
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Kaleidoscope ? "active" : "")" 
-                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Kaleidoscope; }" title="Kaleidoscope Tool">
+            @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Kaleidoscope; }" title="Kaleidoscope Tool">
                 🌀 Kaleidoscope
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Pen && drawingService.ActiveBrush == BrushType.Lasso ? "active" : "")" 
-                    @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Lasso; }" title="Lasso Tool">
+            @onclick="() => { SetDrawingMode(DrawingMode.Pen); drawingService.ActiveBrush = BrushType.Lasso; }" title="Lasso Tool">
                 🪢 Lasso
             </button>
             <button class="brush-btn @(currentDrawingMode == DrawingMode.Shape ? "active" : "")" 
-                    @onclick="() => SetDrawingMode(DrawingMode.Shape)" title="Shape Tool">
+            @onclick="() => SetDrawingMode(DrawingMode.Shape)" title="Shape Tool">
                 🔷 Shape
             </button>
         </div>
@@ -186,7 +186,7 @@
             <!-- Shape Selection Section -->
             <div class="settings-section">
                 <h5>Shape Settings</h5>
-                
+
                 <div class="setting-group">
                     <label for="shapeDropdown">Preset Shapes:</label>
                     <select id="shapeDropdown" @onchange="OnShapeSelectionChanged" value="@selectedShape" disabled="@(currentDrawingMode != DrawingMode.Shape)">
@@ -204,7 +204,7 @@
             {
                 <div class="settings-section">
                     <h5>Physics Settings</h5>
-                    
+
                     <div class="setting-group">
                         <label for="timeToMap">Time To Map (s):</label>
                         <input type="number" id="timeToMap" step="0.1" @bind="currentPhysicsSettings.TimeToMap" />
@@ -244,7 +244,7 @@
             {
                 <div class="settings-section">
                     <h5>Selected Physics Object</h5>
-                    
+
                     <div class="setting-group">
                         <label for="objDensity">Density:</label>
                         <input type="number" id="objDensity" step="0.1" @bind="selectedPhysicsObject.Density" />
@@ -291,9 +291,9 @@
     </div>
 
     <ExportOptionsModal IsOpen="@isExportModalOpen"
-                        IsOpenChanged="@(v => isExportModalOpen = v)"
-                        Options="@exportOptions"
-                        OnExport="Export" />
+    IsOpenChanged="@(v => isExportModalOpen = v)"
+    Options="@exportOptions"
+    OnExport="Export" />
 </div>
 
 @code {
@@ -305,11 +305,13 @@
     SKCanvasView? canvasView;
 
     int activeFrameIndex = 0;
-    BrushType selectedShape = BrushType.Circle;
+    BrushType selectedShape = BrushType.Pen;
     DrawingMode currentDrawingMode = DrawingMode.Select; // Default to Select mode
     bool isPhysicsEnabled = false;
     bool physicsAppliesOnShapes = false;
     PhysicsObjectSettings? selectedPhysicsObject = null;
+
+    const float cursorVerticalOffset = 8f;
 
     PhysicsSettings currentPhysicsSettings = new()
     {
@@ -374,12 +376,15 @@
                     drawingService.LoadAnimation(animation);
                     activeFrameIndex = drawingService.CurrentFrameIndex;
                 }
+                RedrawCanvas();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading animation: {ex.Message}");
+                await ToastService.ShowToast($"Error loading animation: {ex.Message}", ToastType.Error);
             }
         }
+
+        await JSRuntime.InvokeVoidAsync("hideLoadingScreen");
     }
 
     void UpdatePhysicsCanvasSettings()
@@ -633,7 +638,7 @@
     SKPoint GetMousePosition(PointerEventArgs e) 
     {
         var x = (e.ClientX - canvasLeft) * scaleX;
-        var y = (e.ClientY - canvasTop) * scaleY;
+        var y = (e.ClientY - canvasTop) * scaleY - cursorVerticalOffset;
         return new((float)x, (float)y);
     }
 
@@ -684,11 +689,11 @@
         StateHasChanged();
         try {
             await ApiService.Save(drawingService.Frames, AnimationTitle);
-            Console.WriteLine("Successfully saved animation to server");
+            await ToastService.ShowToast("Successfully saved animation!", ToastType.Success);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving animation: {ex.Message}");
+            await ToastService.ShowToast($"Error saving animation: {ex.Message}", ToastType.Error);
         }
     }
 
@@ -702,11 +707,6 @@
     {
         SelectedColor = color;
         drawingService.SetBrushColor(color); // Implement this method in SkiaDrawingService
-    }
-
-    async Task Load()
-    {
-        throw new NotImplementedException();
     }
 
     void GoToProjects()
