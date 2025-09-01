@@ -32,9 +32,10 @@ public class FrameGeneratorService
 		var physicsEngine = new PhysicsEngineCore(frames.First(), worldSettings);
 		var generatedFrames = physicsEngine.GenerateCoordinatesFromPhysics();
 
-		for (int count = i; i <= worldSettings.NumberOfFrames; count++)
+		for (int count = 1; count <= worldSettings.NumberOfFrames; count++)
 		{
 			Frame frame;
+			var physicsShapeInstancesForCurrFrame = generatedFrames[count - 1];
 
 			if (count < frames.Count)
 			{
@@ -42,12 +43,17 @@ public class FrameGeneratorService
 			}
 			else
 			{
-				frame = new Frame { FrameIndex = count };
+				frame = new Frame { FrameIndex = count, Actions = new Stack<DrawActionDTO>() };
 				frames.Add(frame);
 			}
 			// Get all physics shape instances for this frame
 			// Map them to DrawActionDTOs
 			// Push the new DrawActionDTOs to the frame's Actions list
+			foreach (var shapeInstance in physicsShapeInstancesForCurrFrame)
+			{
+				var currDrawAction = MapPhysiscsShapeInstanceToDrawAction(shapeInstance);
+				frame.Actions.Push(currDrawAction);
+			}
 		}
 
 	}

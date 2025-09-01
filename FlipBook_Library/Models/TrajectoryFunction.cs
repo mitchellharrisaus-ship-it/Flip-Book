@@ -1,13 +1,8 @@
 ﻿using FlipBook_Library.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FlipBook_Library.Models;
 
-    public class TrajectoryFunction
+public class TrajectoryFunction
     {
 		public int ObjectId { get; set; }
 		public PhysicsObject OriginalAction { get; set; }
