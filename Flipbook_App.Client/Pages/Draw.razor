@@ -421,6 +421,47 @@
             }
         }
 
+    void UpdatePhysicsCanvasSettings()
+    {
+        // Set the actual screen coordinates where the canvas is positioned
+        currentPhysicsSettings.TopLeftCanvasCoordinates = new Vertex 
+        { 
+            X = canvasLeft,  // Actual X position on screen
+            Y = canvasTop    // Actual Y position on screen
+        };
+        
+        // Canvas dimensions in pixels
+        currentPhysicsSettings.WidthofCanvasInPixels = 800;
+        currentPhysicsSettings.HeightofCanvasInPixels = 600;
+
+        // Update the drawing service if physics is enabled
+        if (isPhysicsEnabled && drawingService != null)
+        {
+            drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
+            scaleX = 800f / (float)rect.width;
+            scaleY = 600f / (float)rect.height;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AnimationID.HasValue)
+        {
+            try
+            {
+                var animation = await ApiService.Load(AnimationID.Value);
+                if (animation != null)
+                {
+                    drawingService.LoadAnimation(animation);
+                    activeFrameIndex = drawingService.CurrentFrameIndex;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading animation: {ex.Message}");
+            }
+        }
+
         Console.WriteLine($"Canvas positioned at: ({canvasLeft}, {canvasTop})");
         Console.WriteLine($"Canvas size: {currentPhysicsSettings.WidthofCanvasInPixels}x{currentPhysicsSettings.HeightofCanvasInPixels}");
     }
@@ -723,6 +764,12 @@
         {
             Console.WriteLine($"Error saving animation: {ex.Message}");
         }
+    }
+
+    void SelectTool(BrushType tool)
+    {
+        drawingService.ActiveBrush = tool;
+        StateHasChanged();
     }
 
     void SelectTool(BrushType tool)
