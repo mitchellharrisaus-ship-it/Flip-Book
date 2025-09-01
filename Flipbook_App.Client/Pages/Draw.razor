@@ -378,6 +378,8 @@
                 await ToastService.ShowToast($"Error loading animation: {ex.Message}", ToastType.Error);
             }
         }
+
+        await JSRuntime.InvokeVoidAsync("hideLoadingScreen");
     }
 
     void UpdatePhysicsCanvasSettings()

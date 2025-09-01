@@ -30,19 +30,7 @@
         <div class="loading-title">Loading Flipbook...</div>
     </div>
     <div id="app"></div>
-    <script src="_framework/blazor.webassembly.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Wait for Blazor to boot and render something
-            var checkAppLoaded = setInterval(function () {
-                // If Blazor has replaced #app's content, remove loading
-                if (document.getElementById('app') && document.getElementById('app').innerHTML.trim() !== "") {
-                    document.getElementById('loading-screen')?.remove();
-                    clearInterval(checkAppLoaded);
-                }
-            }, 100);
-        });
-    </script
+    <script src="_framework/blazor.webassembly.js"></script>
 </body >
 </html >

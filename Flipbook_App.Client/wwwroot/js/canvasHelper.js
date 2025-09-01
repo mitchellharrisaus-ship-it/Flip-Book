@@ -8,3 +8,7 @@
     const rect = canvas.getBoundingClientRect();
     return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
 }
+
+window.hideLoadingScreen = function () {
+    document.getElementById('loading-screen')?.remove();
+};
