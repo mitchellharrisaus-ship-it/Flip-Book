@@ -1,11 +1,5 @@
 ﻿using FlipBook_Library.Core;
 using FlipBook_Library.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FlipBook_Library.Models;
 public class PhysicsObject

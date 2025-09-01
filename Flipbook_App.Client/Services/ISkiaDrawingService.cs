@@ -33,4 +33,6 @@ public interface ISkiaDrawingService
 	void DeleteFrame(int frameIndex);
 
 	void Draw(SKCanvas canvas);
+
+	IList<SKData> RenderAnimation(int renderQuality = 100, int width = 800, int height = 600);
 }

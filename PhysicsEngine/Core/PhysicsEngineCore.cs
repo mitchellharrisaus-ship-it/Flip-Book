@@ -3,7 +3,6 @@ using FlipBook_Library.Core;
 using FlipBook_Library.DTOs;
 using FlipBook_Library.Enums;
 using FlipBook_Library.Models;
-using System.Numerics;
 
 namespace PhysicsEngine.Core;
 public class PhysicsEngineCore
