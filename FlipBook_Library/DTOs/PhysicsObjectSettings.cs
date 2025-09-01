@@ -11,6 +11,7 @@ public class PhysicsObjectSettings
 	public float InitialVelocityY { get; set; }
 	public float Mass { get; set; }
 	public bool IsStatic { get; set; }
+	public float Elasticity { get; set; } = 0.8f; // Default elasticity (coefficient of restitution)
 
 	public PhysicsShape Shape { get; set; }
 }

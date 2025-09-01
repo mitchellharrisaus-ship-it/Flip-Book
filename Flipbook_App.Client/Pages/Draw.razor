@@ -267,6 +267,11 @@
                     </div>
 
                     <div class="setting-group">
+                        <label for="objElasticity">Elasticity:</label>
+                        <input type="number" id="objElasticity" step="0.1" min="0" max="1" @bind="selectedPhysicsObject.Elasticity" />
+                    </div>
+
+                    <div class="setting-group">
                         <label for="objVelX">Initial Velocity X:</label>
                         <input type="number" id="objVelX" step="0.1" @bind="selectedPhysicsObject.InitialVelocityX" />
                     </div>
@@ -320,12 +325,12 @@
         NumberOfFrames = 60,
         HasBoarder = true,
         Gravity = 9.8f,
-        Width = 800.0f,     //Default to current canvas width in meters
-        Height = 600.0f,    //Default to current canvas height in meters
-
+        Width = 700.0f,     //Changed to 700x700 for consistency
+        Height = 700.0f,    //Changed to 700x700 for consistency
+        
         // Initialize pixel-based properties (will be updated in OnAfterRenderAsync)
-        WidthofCanvasInPixels = 800,
-        HeightofCanvasInPixels = 600,
+        WidthofCanvasInPixels = 700,
+        HeightofCanvasInPixels = 700,
         TopLeftCanvasCoordinates = new Vertex { X = 0f, Y = 0f } // Will be updated with actual coordinates
     };
 
@@ -342,8 +347,8 @@
 
     record DomRect(double left, double top, double width, double height);
 
-    // Computed property for canvas style
-    string canvasStyle => $"touch-action: none; width: 800px; height: 600px; cursor: {GetCursorStyle()};";
+    // Computed property for canvas style - Updated to 700x700
+    string canvasStyle => $"touch-action: none; width: 700px; height: 700px; cursor: {GetCursorStyle()};";
 
     bool isExportModalOpen = false;
     ExportOptions exportOptions = new();
@@ -357,8 +362,8 @@
             var rect = await JSRuntime.InvokeAsync<DomRect>("getCanvasRect");
             canvasLeft = (float)rect.left;
             canvasTop = (float)rect.top;
-            scaleX = 800f / (float)rect.width;   // CSS width / actual bounding width
-            scaleY = 600f / (float)rect.height;  // CSS height / actual bounding height
+            scaleX = 700f / (float)rect.width;   // Updated to use 700px logical width
+            scaleY = 700f / (float)rect.height;  // Updated to use 700px logical height
 
             // Update physics settings with the ACTUAL canvas position
             UpdatePhysicsCanvasSettings();
@@ -397,9 +402,9 @@
             Y = canvasTop    // Actual Y position on screen
         };
         
-        // Canvas dimensions in pixels
-        currentPhysicsSettings.WidthofCanvasInPixels = 800;
-        currentPhysicsSettings.HeightofCanvasInPixels = 600;
+        // Canvas dimensions in pixels - Updated to 700x700
+        currentPhysicsSettings.WidthofCanvasInPixels = 700;
+        currentPhysicsSettings.HeightofCanvasInPixels = 700;
 
         // Update the drawing service if physics is enabled
         if (isPhysicsEnabled && drawingService != null)

@@ -5,10 +5,14 @@ using FlipBook_Library.Enums;
 using FlipBook_Library.Models;
 
 namespace PhysicsEngine.Core;
+
 public class PhysicsEngineCore
 {
 	float Height { get; set; }
 	float Width { get; set; }
+
+	// Increase this if you still see a tiny overlap (try 2–3 px depending on your stroke thickness/DPI)
+	private const float CollisionEpsilonPx = 3.0f;
 
 	List<PhysicsObject> physicsObjects = new();
 	PhysicsSettings worldSettings;
@@ -44,15 +48,26 @@ public class PhysicsEngineCore
 			counter++;
 		}
 		
-		// Calculate all canvas boundaries
-		topLeftCanvasX = (int)worldSettings.TopLeftCanvasCoordinates.X;
-		topLeftCanvasY = (int)worldSettings.TopLeftCanvasCoordinates.Y;
-		topRightCanvasX = topLeftCanvasX + worldSettings.WidthofCanvasInPixels;
-		bottomLeftCanvasY = topLeftCanvasY + worldSettings.HeightofCanvasInPixels;
+		// Calculate all canvas boundaries - NOTE: These should be 0 for canvas-relative coordinates
+		topLeftCanvasX = 0; // Canvas coordinates start at 0
+		topLeftCanvasY = 0; // Canvas coordinates start at 0
+		topRightCanvasX = worldSettings.WidthofCanvasInPixels;
+		bottomLeftCanvasY = worldSettings.HeightofCanvasInPixels;
 		bottomRightCanvasX = topRightCanvasX;
 		bottomRightCanvasY = bottomLeftCanvasY;
 		metresToPixelsXConversion = worldSettings.WidthofCanvasInPixels / worldSettings.Width;
 		metresToPixelsYConversion = worldSettings.HeightofCanvasInPixels / worldSettings.Height;
+		
+		// Debug output
+		Console.WriteLine($"Physics Engine Setup:");
+		Console.WriteLine($"  Canvas bounds: (0,0) to ({worldSettings.WidthofCanvasInPixels},{worldSettings.HeightofCanvasInPixels})");
+		Console.WriteLine($"  Physics world: {worldSettings.Width}m x {worldSettings.Height}m");
+		Console.WriteLine($"  Conversion: {metresToPixelsXConversion} pixels/meter");
+		Console.WriteLine($"  Physics objects: {physicsObjects.Count}");
+		foreach (var obj in physicsObjects)
+		{
+			Console.WriteLine($"    Object {obj.Id}: Center=({obj.InitialCentreOfObject.X:F1},{obj.InitialCentreOfObject.Y:F1}), Radius={obj.Radius:F1}");
+		}
 	}
 
 	public List<List<PhysicsShapeInstance>> GenerateCoordinatesFromPhysics()
@@ -64,62 +79,244 @@ public class PhysicsEngineCore
 	public Dictionary<int, List<TrajectoryFunction>> GenerateTrajectories()
 	{
 		var trajectories = new Dictionary<int, List<TrajectoryFunction>>();
-		//Currently only supports one trajectory per object, but in future could support multiple (e.g. collisions)
+		
 		foreach (var physicsObject in physicsObjects)
 		{
-			var trajectory = GenerateTrajectory(physicsObject);
-			if (!trajectories.ContainsKey(physicsObject.Id))
-			{
-				trajectories[physicsObject.Id] = new List<TrajectoryFunction>();
-			}
-			trajectories[physicsObject.Id].Add(trajectory);
+			var objectTrajectories = GenerateTrajectoriesForObject(physicsObject);
+			trajectories[physicsObject.Id] = objectTrajectories;
 		}
 
 		return trajectories;
 	}
 
-	public TrajectoryFunction GenerateTrajectory(PhysicsObject physicsObject)
+	public List<TrajectoryFunction> GenerateTrajectoriesForObject(PhysicsObject physicsObject)
 	{
-		// For static objects, return a function that always returns the initial position
+		var trajectories = new List<TrajectoryFunction>();
+		
+		// For static objects, return a single stationary trajectory
 		if (physicsObject.Settings.IsStatic)
 		{
-			return new TrajectoryFunction
+			trajectories.Add(new TrajectoryFunction
 			{
 				ObjectId = physicsObject.Id,
 				OriginalAction = physicsObject,
 				StartTime = 0,
 				EndTime = worldSettings.TimeToMap,
 				PositionFunction = (time) => physicsObject.InitialCentreOfObject
-			};
+			});
+			return trajectories;
 		}
 
-		// For dynamic objects, calculate projectile motion
-		return CreateProjectileMotionTrajectory(physicsObject);
+		// For dynamic objects, calculate trajectories with possible collisions
+		if (worldSettings.HasBoarder)
+		{
+			trajectories = GenerateTrajectoriesWithBorderCollisions(physicsObject);
+		}
+		else
+		{
+			// No borders - use the original single trajectory
+			trajectories.Add(CreateProjectileMotionTrajectory(physicsObject, 
+				physicsObject.InitialCentreOfObject, 
+				physicsObject.Settings.InitialVelocityX, 
+				physicsObject.Settings.InitialVelocityY, 
+				0));
+		}
+
+		return trajectories;
 	}
 
-	private TrajectoryFunction CreateProjectileMotionTrajectory(PhysicsObject physicsObject)
+	private List<TrajectoryFunction> GenerateTrajectoriesWithBorderCollisions(PhysicsObject physicsObject)
 	{
-		// Convert initial position from pixels to meters for physics calculations
-		var initialPosMeters = new Vertex
+		var trajectories = new List<TrajectoryFunction>();
+		
+		// Start with initial conditions
+		var currentPosition = physicsObject.InitialCentreOfObject;
+		var currentVelX = physicsObject.Settings.InitialVelocityX;
+		var currentVelY = physicsObject.Settings.InitialVelocityY;
+		var currentTime = 0f;
+		var maxCollisions = 10; // Prevent infinite loops
+		var collisionCount = 0;
+
+		Console.WriteLine($"Starting collision simulation for object {physicsObject.Id}:");
+		Console.WriteLine($"  Initial position: ({currentPosition.X:F1},{currentPosition.Y:F1})");
+		Console.WriteLine($"  Initial velocity: ({currentVelX:F1},{currentVelY:F1}) m/s");
+
+		while (currentTime < worldSettings.TimeToMap && collisionCount < maxCollisions)
 		{
-			X = (physicsObject.InitialCentreOfObject.X - topLeftCanvasX) / metresToPixelsXConversion,
-			Y = (physicsObject.InitialCentreOfObject.Y - topLeftCanvasY) / metresToPixelsYConversion
+			// Create trajectory segment from current state
+			var trajectory = CreateProjectileMotionTrajectory(physicsObject, currentPosition, currentVelX, currentVelY, currentTime);
+			
+			// Check if this trajectory hits a border
+			var collisionInfo = DetectBorderCollision(physicsObject, currentPosition, currentVelX, currentVelY, currentTime);
+			
+			if (collisionInfo.HasCollision && collisionInfo.CollisionTime < worldSettings.TimeToMap)
+			{
+				// Collision detected - truncate trajectory at collision point
+				trajectory.EndTime = collisionInfo.CollisionTime;
+				trajectories.Add(trajectory);
+				
+				// Calculate post-collision state
+				var collisionPosition = trajectory.GetPositionAtTime(collisionInfo.CollisionTime);
+				var (newVelX, newVelY) = CalculatePostCollisionVelocity(
+					currentVelX, currentVelY, collisionInfo.CollisionSide, physicsObject.Settings.Elasticity, 
+					collisionInfo.CollisionTime - currentTime);
+				
+				Console.WriteLine($"  Collision {collisionCount + 1} at t={collisionInfo.CollisionTime:F2}s:");
+				Console.WriteLine($"    Side: {collisionInfo.CollisionSide}");
+				Console.WriteLine($"    Position: ({collisionPosition.X:F1},{collisionPosition.Y:F1})");
+				Console.WriteLine($"    New velocity: ({newVelX:F1},{newVelY:F1}) m/s");
+				
+				// Update for next trajectory segment
+				currentPosition = collisionPosition;
+				currentVelX = newVelX;
+				currentVelY = newVelY;
+				currentTime = collisionInfo.CollisionTime;
+				collisionCount++;
+			}
+			else
+			{
+				// No collision - this trajectory segment goes to the end
+				trajectories.Add(trajectory);
+				break;
+			}
+		}
+
+		return trajectories;
+	}
+
+	private CollisionInfo DetectBorderCollision(PhysicsObject physicsObject, Vertex startPosition, float velX, float velY, float startTime)
+	{
+        var radiusPixels = physicsObject.Radius;
+        var gravity = worldSettings.Gravity;
+        var startPosCanvas = startPosition;
+
+        // Use the larger epsilon
+        var epsilon = CollisionEpsilonPx;
+
+        var leftBoundary   = radiusPixels + epsilon;
+        var rightBoundary  = worldSettings.WidthofCanvasInPixels  - radiusPixels - epsilon;
+        var topBoundary    = radiusPixels + epsilon;
+        var bottomBoundary = worldSettings.HeightofCanvasInPixels - radiusPixels - epsilon;
+
+        var velXPixels = velX * metresToPixelsXConversion;
+        var velYPixels = velY * metresToPixelsYConversion;
+        var gravityPixels = gravity * metresToPixelsYConversion;
+
+        var earliestCollision = new CollisionInfo { HasCollision = false, CollisionTime = float.MaxValue };
+
+        // Check X boundaries
+        if (Math.Abs(velXPixels) > 0.001f)
+        {
+            float timeToXCollision;
+            CollisionSide xSide;
+
+            if (velXPixels > 0) { timeToXCollision = (rightBoundary - startPosCanvas.X) / velXPixels; xSide = CollisionSide.Right; }
+            else { timeToXCollision = (leftBoundary - startPosCanvas.X) / velXPixels; xSide = CollisionSide.Left; }
+
+            if (timeToXCollision > 0 && timeToXCollision < earliestCollision.CollisionTime)
+            {
+                var yAtCollision = startPosCanvas.Y + velYPixels * timeToXCollision + 0.5f * gravityPixels * timeToXCollision * timeToXCollision;
+                if (yAtCollision >= topBoundary && yAtCollision <= bottomBoundary)
+                {
+                    earliestCollision = new CollisionInfo { HasCollision = true, CollisionTime = startTime + timeToXCollision, CollisionSide = xSide };
+                }
+            }
+        }
+
+        // Check Y boundaries
+        if (Math.Abs(velYPixels) > 0.001f || Math.Abs(gravityPixels) > 0.001f)
+        {
+            if (velYPixels < 0 || gravityPixels < 0)
+            {
+                var timeToTopCollision = CalculateQuadraticTimeToPosition(startPosCanvas.Y, velYPixels, gravityPixels, topBoundary);
+                if (timeToTopCollision > 0 && timeToTopCollision < earliestCollision.CollisionTime)
+                {
+                    var xAtCollision = startPosCanvas.X + velXPixels * timeToTopCollision;
+                    if (xAtCollision >= leftBoundary && xAtCollision <= rightBoundary)
+                    {
+                        earliestCollision = new CollisionInfo { HasCollision = true, CollisionTime = startTime + timeToTopCollision, CollisionSide = CollisionSide.Top };
+                    }
+                }
+            }
+
+            if (velYPixels > 0 || gravityPixels > 0)
+            {
+                var timeToBottomCollision = CalculateQuadraticTimeToPosition(startPosCanvas.Y, velYPixels, gravityPixels, bottomBoundary);
+                if (timeToBottomCollision > 0 && timeToBottomCollision < earliestCollision.CollisionTime)
+                {
+                    var xAtCollision = startPosCanvas.X + velXPixels * timeToBottomCollision;
+                    if (xAtCollision >= leftBoundary && xAtCollision <= rightBoundary)
+                    {
+                        earliestCollision = new CollisionInfo { HasCollision = true, CollisionTime = startTime + timeToBottomCollision, CollisionSide = CollisionSide.Bottom };
+                    }
+                }
+            }
+        }
+
+        return earliestCollision;
+	}
+	private (float newVelX, float newVelY) CalculatePostCollisionVelocity(float velX, float velY, CollisionSide collisionSide, float elasticity, float timeFromStart)
+	{
+		var gravity = worldSettings.Gravity;
+		
+		// Calculate velocity at collision time (accounting for gravity effect on Y velocity)
+		var velYAtCollision = velY + gravity * timeFromStart;
+		
+		switch (collisionSide)
+		{
+			case CollisionSide.Left:
+			case CollisionSide.Right:
+				// Horizontal collision - reverse X velocity with elasticity, keep Y velocity
+				return (-velX * elasticity, velYAtCollision);
+				
+			case CollisionSide.Top:
+			case CollisionSide.Bottom:
+				// Vertical collision - keep X velocity, reverse Y velocity with elasticity
+				return (velX, -velYAtCollision * elasticity);
+				
+			default:
+				return (velX, velYAtCollision);
+		}
+	}
+
+	public TrajectoryFunction GenerateTrajectory(PhysicsObject physicsObject)
+	{
+		// This method is kept for backward compatibility
+		var trajectories = GenerateTrajectoriesForObject(physicsObject);
+		return trajectories.FirstOrDefault() ?? new TrajectoryFunction
+		{
+			ObjectId = physicsObject.Id,
+			OriginalAction = physicsObject,
+			StartTime = 0,
+			EndTime = worldSettings.TimeToMap,
+			PositionFunction = (time) => physicsObject.InitialCentreOfObject
 		};
+	}
 
-		var initialVelX = physicsObject.Settings.InitialVelocityX; // Already in m/s
-		var initialVelY = physicsObject.Settings.InitialVelocityY; // Already in m/s
-		var gravity = worldSettings.Gravity; // Already in m/s²
-		var radiusMeters = physicsObject.Radius / metresToPixelsXConversion; // Convert radius to meters
+	private TrajectoryFunction CreateProjectileMotionTrajectory(PhysicsObject physicsObject, Vertex startPosition, float velX, float velY, float startTime)
+	{
+		// startPosition is already in canvas coordinates (0-700 pixels)
+		var initialPosCanvas = startPosition;
 
-		// Calculate when object goes off-canvas (if it does)
-		var actualEndTime = CalculateOffCanvasTimeUsingSUVAT(initialPosMeters, initialVelX, initialVelY, gravity, radiusMeters);
+		var gravity = worldSettings.Gravity; // in m/s²
+		var radiusPixels = physicsObject.Radius;
+
+		// Convert velocities to pixels per second for consistent calculations
+		var velXPixels = velX * metresToPixelsXConversion;
+		var velYPixels = velY * metresToPixelsYConversion;
+		var gravityPixels = gravity * metresToPixelsYConversion;
+
+		// Calculate when object goes off-canvas (if no borders or collision system handles it)
+		var actualEndTime = worldSettings.HasBoarder ? 
+			worldSettings.TimeToMap : 
+			CalculateOffCanvasTimeUsingSUVAT(initialPosCanvas, velXPixels, velYPixels, gravityPixels, radiusPixels);
 		var endTime = Math.Min(worldSettings.TimeToMap, actualEndTime);
 
 		return new TrajectoryFunction
 		{
 			ObjectId = physicsObject.Id,
 			OriginalAction = physicsObject,
-			StartTime = 0,
+			StartTime = startTime,
 			EndTime = endTime,
 			PositionFunction = (time) =>
 			{
@@ -129,13 +326,12 @@ public class PhysicsEngineCore
 					return new Vertex { X = -9999, Y = -9999 }; // Off-screen indicator
 				}
 
-				// Basic projectile motion equations (in meters)
-				var xMeters = initialPosMeters.X + initialVelX * time;
-				var yMeters = initialPosMeters.Y + initialVelY * time + 0.5f * gravity * time * time;
+				// Time relative to this trajectory segment start
+				var relativeTime = time - startTime;
 
-				// Convert back to pixels for display
-				var xPixels = xMeters * metresToPixelsXConversion + topLeftCanvasX;
-				var yPixels = yMeters * metresToPixelsYConversion + topLeftCanvasY;
+				// Basic projectile motion equations (in canvas pixels)
+				var xPixels = initialPosCanvas.X + velXPixels * relativeTime;
+				var yPixels = initialPosCanvas.Y + velYPixels * relativeTime + 0.5f * gravityPixels * relativeTime * relativeTime;
 
 				return new Vertex
 				{
@@ -146,34 +342,32 @@ public class PhysicsEngineCore
 		};
 	}
 
-	private float CalculateOffCanvasTimeUsingSUVAT(Vertex initialPosMeters, float velX, float velY, float gravity, float radiusMeters)
+	private float CalculateOffCanvasTimeUsingSUVAT(Vertex initialPosPixels, float velXPixels, float velYPixels, float gravityPixels, float radiusPixels)
 	{
 		var maxTime = worldSettings.TimeToMap;
 		var minTimeToExit = maxTime;
-		const float toleranceMeters = 0.01f; // 0.01m tolerance
+		const float tolerancePixels = 1f; // 1 pixel tolerance
 
-		// Canvas boundaries in meters (relative to physics world origin)
-		var leftBoundaryMeters = radiusMeters + toleranceMeters;
-		var rightBoundaryMeters = worldSettings.Width - radiusMeters - toleranceMeters;
-		var topBoundaryMeters = radiusMeters + toleranceMeters;
-		var bottomBoundaryMeters = worldSettings.Height - radiusMeters - toleranceMeters;
+		// Canvas boundaries in pixels (relative to canvas origin)
+		var leftBoundaryPixels = radiusPixels + tolerancePixels;
+		var rightBoundaryPixels = worldSettings.WidthofCanvasInPixels - radiusPixels - tolerancePixels;
+		var topBoundaryPixels = radiusPixels + tolerancePixels;
+		var bottomBoundaryPixels = worldSettings.HeightofCanvasInPixels - radiusPixels - tolerancePixels;
 
 		// Check X direction movement
-		if (Math.Abs(velX) > 0.001f) // Only calculate if there's significant X velocity
+		if (Math.Abs(velXPixels) > 0.001f) // Only calculate if there's significant X velocity
 		{
 			float timeToXBoundary;
 			
-			if (velX > 0) // Moving right
+			if (velXPixels > 0) // Moving right
 			{
 				// Calculate time to reach right boundary
-				// Using SUVAT: s = ut + 0.5at²
-				// For X direction: rightBoundary = initialPos.X + velX * t (no acceleration in X)
-				timeToXBoundary = (rightBoundaryMeters - initialPosMeters.X) / velX;
+				timeToXBoundary = (rightBoundaryPixels - initialPosPixels.X) / velXPixels;
 			}
 			else // Moving left
 			{
 				// Calculate time to reach left boundary
-				timeToXBoundary = (leftBoundaryMeters - initialPosMeters.X) / velX;
+				timeToXBoundary = (leftBoundaryPixels - initialPosPixels.X) / velXPixels;
 			}
 
 			if (timeToXBoundary > 0 && timeToXBoundary < minTimeToExit)
@@ -183,15 +377,12 @@ public class PhysicsEngineCore
 		}
 
 		// Check Y direction movement
-		if (Math.Abs(velY) > 0.001f || Math.Abs(gravity) > 0.001f) // Y movement due to velocity or gravity
+		if (Math.Abs(velYPixels) > 0.001f || Math.Abs(gravityPixels) > 0.001f) // Y movement due to velocity or gravity
 		{
-			// For Y direction with gravity: s = ut + 0.5at²
-			// Rearranged: 0.5*gravity*t² + velY*t + (initialPos.Y - boundary) = 0
-			
 			// Check top boundary
-			if (velY < 0 || gravity < 0) // Moving up or gravity pulling up
+			if (velYPixels < 0 || gravityPixels < 0) // Moving up or gravity pulling up
 			{
-				var timeToTopBoundary = CalculateQuadraticTimeToPosition(initialPosMeters.Y, velY, gravity, topBoundaryMeters);
+				var timeToTopBoundary = CalculateQuadraticTimeToPosition(initialPosPixels.Y, velYPixels, gravityPixels, topBoundaryPixels);
 				if (timeToTopBoundary > 0 && timeToTopBoundary < minTimeToExit)
 				{
 					minTimeToExit = timeToTopBoundary;
@@ -199,9 +390,9 @@ public class PhysicsEngineCore
 			}
 
 			// Check bottom boundary
-			if (velY > 0 || gravity > 0) // Moving down or gravity pulling down
+			if (velYPixels > 0 || gravityPixels > 0) // Moving down or gravity pulling down
 			{
-				var timeToBottomBoundary = CalculateQuadraticTimeToPosition(initialPosMeters.Y, velY, gravity, bottomBoundaryMeters);
+				var timeToBottomBoundary = CalculateQuadraticTimeToPosition(initialPosPixels.Y, velYPixels, gravityPixels, bottomBoundaryPixels);
 				if (timeToBottomBoundary > 0 && timeToBottomBoundary < minTimeToExit)
 				{
 					minTimeToExit = timeToBottomBoundary;
@@ -212,15 +403,15 @@ public class PhysicsEngineCore
 		return minTimeToExit;
 	}
 
-	private float CalculateQuadraticTimeToPosition(float initialPosMeters, float velocity, float acceleration, float targetPosMeters)
+	private float CalculateQuadraticTimeToPosition(float initialPosPixels, float velocityPixels, float accelerationPixels, float targetPosPixels)
 	{
 		// Solving: targetPos = initialPos + velocity*t + 0.5*acceleration*t²
 		// Rearranged: 0.5*acceleration*t² + velocity*t + (initialPos - targetPos) = 0
-		// All calculations in meters
+		// All calculations in pixels
 
-		var a = 0.5f * acceleration;
-		var b = velocity;
-		var c = initialPosMeters - targetPosMeters;
+		var a = 0.5f * accelerationPixels;
+		var b = velocityPixels;
+		var c = initialPosPixels - targetPosPixels;
 
 		// If acceleration is effectively zero, use linear equation
 		if (Math.Abs(a) < 0.001f)
@@ -247,9 +438,15 @@ public class PhysicsEngineCore
 
 	public Vertex FindMiddlePoint(PhysicsShape shape, List<Vertex> shapeCoordinates)
 	{
+		if (shape == PhysicsShape.Circle && shapeCoordinates.Count >= 2)
+		{
+			// DTO order: [0]=circumference (outermost), [1]=center
+			return shapeCoordinates[1];
+		}
+
+		// Non-circles: bounding box center
 		var furthestRightPoint = shapeCoordinates.Max(v => v.X);
 		var furthestLeftPoint = shapeCoordinates.Min(v => v.X);
-
 		var highestPoint = shapeCoordinates.Max(v => v.Y);
 		var lowestPoint = shapeCoordinates.Min(v => v.Y);
 
@@ -262,77 +459,82 @@ public class PhysicsEngineCore
 
 	public float FindRadius(PhysicsShape shape, List<Vertex> shapeCoordinates)
 	{
-		var radius = 0f;
 		if (shape == PhysicsShape.Circle && shapeCoordinates.Count >= 2)
 		{
-			// Calculate the actual radius using the center and circumference point
-			var center = shapeCoordinates[0];
-			var circumferencePoint = shapeCoordinates[1];
-			
-			// Use distance formula to get the actual radius
-			radius = (float)Math.Sqrt(
-				Math.Pow(circumferencePoint.X - center.X, 2) + 
+			// DTO order: [0]=circumference, [1]=center
+			var circumferencePoint = shapeCoordinates[0];
+			var center = shapeCoordinates[1];
+
+			return (float)Math.Sqrt(
+				Math.Pow(circumferencePoint.X - center.X, 2) +
 				Math.Pow(circumferencePoint.Y - center.Y, 2)
 			);
 		}
-		return radius;
+		return 0f;
 	}
 
 	public List<List<PhysicsShapeInstance>> GenerateCoordinatesFromProjectileMotionFunctions(Dictionary<int, List<TrajectoryFunction>> projectileMotionFunctions)
 	{
 		var result = new List<List<PhysicsShapeInstance>>();
-		
-		// Calculate time increment per frame
-		var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
-		
-		// Generate coordinates for each frame
-		for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
-		{
-			var currentTime = frameIndex * timePerFrame;
-			var frameShapes = new List<PhysicsShapeInstance>();
-			
-			// Process each physics object
-			foreach (var objectTrajectories in projectileMotionFunctions)
-			{
-				var objectId = objectTrajectories.Key;
-				var trajectories = objectTrajectories.Value;
-				
-				// Currently only one trajectory per object, but designed for future collisions
-				var activeTrajectory = trajectories.FirstOrDefault(t => 
-					currentTime >= t.StartTime && currentTime <= t.EndTime);
-				
-				if (activeTrajectory != null)
-				{
-					// Get the center position at this time (already in pixels)
-					var centerPosition = activeTrajectory.GetPositionAtTime(currentTime);
-					
-					// Skip if object is off-screen
-					if (centerPosition.X == -9999 && centerPosition.Y == -9999)
-						continue;
-					
-					// Get the physics object to determine shape and radius
-					var physicsObject = physicsObjects.FirstOrDefault(po => po.Id == objectId);
-					if (physicsObject == null) continue;
-					
-					var shape = physicsObject.Settings.Shape;
-					var radius = physicsObject.Radius; // Keep radius in pixels for display
-					
-					// Create PhysicsShapeInstance with the center point
-					var physicsShapeInstance = new PhysicsShapeInstance(
-						objectId: objectId,
-						shape: shape,
-						radius: radius,
-						centerVertice: centerPosition
-					);
-					
-					frameShapes.Add(physicsShapeInstance);
-				}
-			}
-			
-			// Add the frame (even if empty - represents a frame with no physics objects)
-			result.Add(frameShapes);
-		}
-		
-		return result;
+        var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
+
+        for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
+        {
+            var currentTime = frameIndex * timePerFrame;
+            var frameShapes = new List<PhysicsShapeInstance>();
+
+            foreach (var objectTrajectories in projectileMotionFunctions)
+            {
+                var objectId = objectTrajectories.Key;
+                var trajectories = objectTrajectories.Value;
+
+                var activeTrajectory = trajectories.FirstOrDefault(t => currentTime >= t.StartTime && currentTime <= t.EndTime);
+                if (activeTrajectory == null) continue;
+
+                var centerPosition = activeTrajectory.GetPositionAtTime(currentTime);
+                if (centerPosition.X == -9999 && centerPosition.Y == -9999) continue;
+
+                var physicsObject = physicsObjects.FirstOrDefault(po => po.Id == objectId);
+                if (physicsObject == null) continue;
+
+                var radius = physicsObject.Radius;
+
+                // Clamp with the same epsilon to guarantee no visible penetration
+                centerPosition = new Vertex
+                {
+                    X = Math.Clamp(centerPosition.X, radius + CollisionEpsilonPx, worldSettings.WidthofCanvasInPixels  - radius - CollisionEpsilonPx),
+                    Y = Math.Clamp(centerPosition.Y, radius + CollisionEpsilonPx, worldSettings.HeightofCanvasInPixels - radius - CollisionEpsilonPx)
+                };
+
+                var physicsShapeInstance = new PhysicsShapeInstance(
+                    objectId: objectId,
+                    shape: physicsObject.Settings.Shape,
+                    radius: radius,
+                    centerVertice: centerPosition
+                );
+
+                frameShapes.Add(physicsShapeInstance);
+            }
+
+            result.Add(frameShapes);
+        }
+
+        return result;
 	}
+}
+
+// Supporting classes for collision detection
+public class CollisionInfo
+{
+	public bool HasCollision { get; set; }
+	public float CollisionTime { get; set; }
+	public CollisionSide CollisionSide { get; set; }
+}
+
+public enum CollisionSide
+{
+	Top,
+	Bottom,
+	Left,
+	Right
 }
