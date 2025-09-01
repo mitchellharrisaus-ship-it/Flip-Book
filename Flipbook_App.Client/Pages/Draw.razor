@@ -704,17 +704,6 @@
         drawingService.SetBrushColor(color); // Implement this method in SkiaDrawingService
     }
 
-    async Task Load()
-    {
-        try {
-            throw new NotImplementedException();
-        }
-        catch (Exception ex)
-        {
-            await ToastService.ShowToast($"Error loading animation: {ex.Message}", ToastType.Error);
-        }
-    }
-
     void GoToProjects()
     {
         Navigation.NavigateTo("/projects");

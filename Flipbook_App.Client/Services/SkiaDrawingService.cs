@@ -25,7 +25,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	bool isDrawing;
 
-	IList<Stack<DrawActionDTO>> undoneActions = [];
+	IList<Stack<DrawActionDTO>> undoneActions = [new()];
 
 	readonly IDrawShapeService drawShapeService;
 
@@ -49,15 +49,8 @@ public class SkiaDrawingService : ISkiaDrawingService
 			IsPhysicsObject = IsPhysicsEnabled && PhysicsAppliesOnShapes
 		};
 
-		if (undoneActions.ElementAtOrDefault(CurrentFrameIndex) == null)
-		{
-			undoneActions.Add(new Stack<DrawActionDTO>());
-		}
-		else
-		{
-			// Clear redo stack if we start a new action
-			undoneActions[CurrentFrameIndex].Clear();
-		}
+		// Clear redo stack if we start a new action
+		undoneActions[CurrentFrameIndex].Clear();
 	}
 
 	public void HandlePointerMove(float x, float y)
@@ -178,6 +171,8 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 	public void CreateFrame(Frame? givenFrame = null)
 	{
+		undoneActions.Add(new());
+
 		if (givenFrame != null)
 		{
 			Frames.Add(givenFrame);
@@ -423,7 +418,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 
 			var bitmap = new SKBitmap(width, height);
 			using var canvas = new SKCanvas(bitmap);
-			canvas.Clear(SKColors.White);
+			canvas.Clear(SKColors.Transparent);
 
 			foreach (var shape in frame.Actions)
 			{
