@@ -11,6 +11,9 @@ public class PhysicsEngineCore
 	float Height { get; set; }
 	float Width { get; set; }
 
+	// Increase this if you still see a tiny overlap (try 2–3 px depending on your stroke thickness/DPI)
+	private const float CollisionEpsilonPx = 3.0f;
+
 	List<PhysicsObject> physicsObjects = new();
 	PhysicsSettings worldSettings;
 	int topLeftCanvasX;
@@ -183,106 +186,75 @@ public class PhysicsEngineCore
 
 	private CollisionInfo DetectBorderCollision(PhysicsObject physicsObject, Vertex startPosition, float velX, float velY, float startTime)
 	{
-		var radiusPixels = physicsObject.Radius;
-		var gravity = worldSettings.Gravity;
-		
-		// startPosition is already in canvas coordinates (0 to 700)
-		var startPosCanvas = startPosition;
+        var radiusPixels = physicsObject.Radius;
+        var gravity = worldSettings.Gravity;
+        var startPosCanvas = startPosition;
 
-		// Define collision boundaries in canvas pixels (accounting for radius)
-		// These represent where the CENTER of the circle would be when the EDGE touches the boundary
-		var leftBoundary = radiusPixels;
-		var rightBoundary = worldSettings.WidthofCanvasInPixels - radiusPixels;
-		var topBoundary = radiusPixels;
-		var bottomBoundary = worldSettings.HeightofCanvasInPixels - radiusPixels;
+        // Use the larger epsilon
+        var epsilon = CollisionEpsilonPx;
 
-		// Convert velocities to pixels per second
-		var velXPixels = velX * metresToPixelsXConversion;
-		var velYPixels = velY * metresToPixelsYConversion;
-		var gravityPixels = gravity * metresToPixelsYConversion;
+        var leftBoundary   = radiusPixels + epsilon;
+        var rightBoundary  = worldSettings.WidthofCanvasInPixels  - radiusPixels - epsilon;
+        var topBoundary    = radiusPixels + epsilon;
+        var bottomBoundary = worldSettings.HeightofCanvasInPixels - radiusPixels - epsilon;
 
-		var earliestCollision = new CollisionInfo { HasCollision = false, CollisionTime = float.MaxValue };
+        var velXPixels = velX * metresToPixelsXConversion;
+        var velYPixels = velY * metresToPixelsYConversion;
+        var gravityPixels = gravity * metresToPixelsYConversion;
 
-		// Check X boundaries
-		if (Math.Abs(velXPixels) > 0.001f)
-		{
-			float timeToXCollision;
-			CollisionSide xSide;
-			
-			if (velXPixels > 0) // Moving right
-			{
-				timeToXCollision = (rightBoundary - startPosCanvas.X) / velXPixels;
-				xSide = CollisionSide.Right;
-			}
-			else // Moving left
-			{
-				timeToXCollision = (leftBoundary - startPosCanvas.X) / velXPixels;
-				xSide = CollisionSide.Left;
-			}
+        var earliestCollision = new CollisionInfo { HasCollision = false, CollisionTime = float.MaxValue };
 
-			if (timeToXCollision > 0 && timeToXCollision < earliestCollision.CollisionTime)
-			{
-				// Check if Y position is still within bounds at this time
-				var yAtCollision = startPosCanvas.Y + velYPixels * timeToXCollision + 0.5f * gravityPixels * timeToXCollision * timeToXCollision;
-				if (yAtCollision >= topBoundary && yAtCollision <= bottomBoundary)
-				{
-					earliestCollision = new CollisionInfo
-					{
-						HasCollision = true,
-						CollisionTime = startTime + timeToXCollision,
-						CollisionSide = xSide
-					};
-				}
-			}
-		}
+        // Check X boundaries
+        if (Math.Abs(velXPixels) > 0.001f)
+        {
+            float timeToXCollision;
+            CollisionSide xSide;
 
-		// Check Y boundaries
-		if (Math.Abs(velYPixels) > 0.001f || Math.Abs(gravityPixels) > 0.001f)
-		{
-			// Check top boundary (if moving upward or upward gravity)
-			if (velYPixels < 0 || gravityPixels < 0)
-			{
-				var timeToTopCollision = CalculateQuadraticTimeToPosition(startPosCanvas.Y, velYPixels, gravityPixels, topBoundary);
-				if (timeToTopCollision > 0 && timeToTopCollision < earliestCollision.CollisionTime)
-				{
-					// Check if X position is still within bounds
-					var xAtCollision = startPosCanvas.X + velXPixels * timeToTopCollision;
-					if (xAtCollision >= leftBoundary && xAtCollision <= rightBoundary)
-					{
-						earliestCollision = new CollisionInfo
-						{
-							HasCollision = true,
-							CollisionTime = startTime + timeToTopCollision,
-							CollisionSide = CollisionSide.Top
-						};
-					}
-				}
-			}
+            if (velXPixels > 0) { timeToXCollision = (rightBoundary - startPosCanvas.X) / velXPixels; xSide = CollisionSide.Right; }
+            else { timeToXCollision = (leftBoundary - startPosCanvas.X) / velXPixels; xSide = CollisionSide.Left; }
 
-			// Check bottom boundary (if moving downward or downward gravity)
-			if (velYPixels > 0 || gravityPixels > 0)
-			{
-				var timeToBottomCollision = CalculateQuadraticTimeToPosition(startPosCanvas.Y, velYPixels, gravityPixels, bottomBoundary);
-				if (timeToBottomCollision > 0 && timeToBottomCollision < earliestCollision.CollisionTime)
-				{
-					// Check if X position is still within bounds
-					var xAtCollision = startPosCanvas.X + velXPixels * timeToBottomCollision;
-					if (xAtCollision >= leftBoundary && xAtCollision <= rightBoundary)
-					{
-						earliestCollision = new CollisionInfo
-						{
-							HasCollision = true,
-							CollisionTime = startTime + timeToBottomCollision,
-							CollisionSide = CollisionSide.Bottom
-						};
-					}
-				}
-			}
-		}
+            if (timeToXCollision > 0 && timeToXCollision < earliestCollision.CollisionTime)
+            {
+                var yAtCollision = startPosCanvas.Y + velYPixels * timeToXCollision + 0.5f * gravityPixels * timeToXCollision * timeToXCollision;
+                if (yAtCollision >= topBoundary && yAtCollision <= bottomBoundary)
+                {
+                    earliestCollision = new CollisionInfo { HasCollision = true, CollisionTime = startTime + timeToXCollision, CollisionSide = xSide };
+                }
+            }
+        }
 
-		return earliestCollision;
+        // Check Y boundaries
+        if (Math.Abs(velYPixels) > 0.001f || Math.Abs(gravityPixels) > 0.001f)
+        {
+            if (velYPixels < 0 || gravityPixels < 0)
+            {
+                var timeToTopCollision = CalculateQuadraticTimeToPosition(startPosCanvas.Y, velYPixels, gravityPixels, topBoundary);
+                if (timeToTopCollision > 0 && timeToTopCollision < earliestCollision.CollisionTime)
+                {
+                    var xAtCollision = startPosCanvas.X + velXPixels * timeToTopCollision;
+                    if (xAtCollision >= leftBoundary && xAtCollision <= rightBoundary)
+                    {
+                        earliestCollision = new CollisionInfo { HasCollision = true, CollisionTime = startTime + timeToTopCollision, CollisionSide = CollisionSide.Top };
+                    }
+                }
+            }
+
+            if (velYPixels > 0 || gravityPixels > 0)
+            {
+                var timeToBottomCollision = CalculateQuadraticTimeToPosition(startPosCanvas.Y, velYPixels, gravityPixels, bottomBoundary);
+                if (timeToBottomCollision > 0 && timeToBottomCollision < earliestCollision.CollisionTime)
+                {
+                    var xAtCollision = startPosCanvas.X + velXPixels * timeToBottomCollision;
+                    if (xAtCollision >= leftBoundary && xAtCollision <= rightBoundary)
+                    {
+                        earliestCollision = new CollisionInfo { HasCollision = true, CollisionTime = startTime + timeToBottomCollision, CollisionSide = CollisionSide.Bottom };
+                    }
+                }
+            }
+        }
+
+        return earliestCollision;
 	}
-
 	private (float newVelX, float newVelY) CalculatePostCollisionVelocity(float velX, float velY, CollisionSide collisionSide, float elasticity, float timeFromStart)
 	{
 		var gravity = worldSettings.Gravity;
@@ -468,15 +440,13 @@ public class PhysicsEngineCore
 	{
 		if (shape == PhysicsShape.Circle && shapeCoordinates.Count >= 2)
 		{
-			// For circles, the first vertex IS the center point
-			// No need to calculate center from bounding box
-			return shapeCoordinates[0];
+			// DTO order: [0]=circumference (outermost), [1]=center
+			return shapeCoordinates[1];
 		}
-		
-		// For other shapes, use bounding box center
+
+		// Non-circles: bounding box center
 		var furthestRightPoint = shapeCoordinates.Max(v => v.X);
 		var furthestLeftPoint = shapeCoordinates.Min(v => v.X);
-
 		var highestPoint = shapeCoordinates.Max(v => v.Y);
 		var lowestPoint = shapeCoordinates.Min(v => v.Y);
 
@@ -489,78 +459,67 @@ public class PhysicsEngineCore
 
 	public float FindRadius(PhysicsShape shape, List<Vertex> shapeCoordinates)
 	{
-		var radius = 0f;
 		if (shape == PhysicsShape.Circle && shapeCoordinates.Count >= 2)
 		{
-			// Calculate the actual radius using the center and circumference point
-			var center = shapeCoordinates[0];
-			var circumferencePoint = shapeCoordinates[1];
-			
-			// Use distance formula to get the actual radius
-			radius = (float)Math.Sqrt(
-				Math.Pow(circumferencePoint.X - center.X, 2) + 
+			// DTO order: [0]=circumference, [1]=center
+			var circumferencePoint = shapeCoordinates[0];
+			var center = shapeCoordinates[1];
+
+			return (float)Math.Sqrt(
+				Math.Pow(circumferencePoint.X - center.X, 2) +
 				Math.Pow(circumferencePoint.Y - center.Y, 2)
 			);
 		}
-		return radius;
+		return 0f;
 	}
 
 	public List<List<PhysicsShapeInstance>> GenerateCoordinatesFromProjectileMotionFunctions(Dictionary<int, List<TrajectoryFunction>> projectileMotionFunctions)
 	{
 		var result = new List<List<PhysicsShapeInstance>>();
-		
-		// Calculate time increment per frame
-		var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
-		
-		// Generate coordinates for each frame
-		for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
-		{
-			var currentTime = frameIndex * timePerFrame;
-			var frameShapes = new List<PhysicsShapeInstance>();
-			
-			// Process each physics object
-			foreach (var objectTrajectories in projectileMotionFunctions)
-			{
-				var objectId = objectTrajectories.Key;
-				var trajectories = objectTrajectories.Value;
-				
-				// Find the active trajectory for this time
-				var activeTrajectory = trajectories.FirstOrDefault(t => 
-					currentTime >= t.StartTime && currentTime <= t.EndTime);
-				
-				if (activeTrajectory != null)
-				{
-					// Get the center position at this time (already in pixels)
-					var centerPosition = activeTrajectory.GetPositionAtTime(currentTime);
-					
-					// Skip if object is off-screen
-					if (centerPosition.X == -9999 && centerPosition.Y == -9999)
-						continue;
-					
-					// Get the physics object to determine shape and radius
-					var physicsObject = physicsObjects.FirstOrDefault(po => po.Id == objectId);
-					if (physicsObject == null) continue;
-					
-					var shape = physicsObject.Settings.Shape;
-					var radius = physicsObject.Radius; // Keep radius in pixels for display
-					
-					// Create PhysicsShapeInstance with the center point
-					var physicsShapeInstance = new PhysicsShapeInstance(
-						objectId: objectId,
-						shape: shape,
-						radius: radius,
-						centerVertice: centerPosition
-					);
-					
-					frameShapes.Add(physicsShapeInstance);
-				}
-			}
-			
-			// Add the frame (even if empty - represents a frame with no physics objects)
-			result.Add(frameShapes);
-		}
-		
-		return result;
+        var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
+
+        for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
+        {
+            var currentTime = frameIndex * timePerFrame;
+            var frameShapes = new List<PhysicsShapeInstance>();
+
+            foreach (var objectTrajectories in projectileMotionFunctions)
+            {
+                var objectId = objectTrajectories.Key;
+                var trajectories = objectTrajectories.Value;
+
+                var activeTrajectory = trajectories.FirstOrDefault(t => currentTime >= t.StartTime && currentTime <= t.EndTime);
+                if (activeTrajectory == null) continue;
+
+                var centerPosition = activeTrajectory.GetPositionAtTime(currentTime);
+                if (centerPosition.X == -9999 && centerPosition.Y == -9999) continue;
+
+                var physicsObject = physicsObjects.FirstOrDefault(po => po.Id == objectId);
+                if (physicsObject == null) continue;
+
+                var radius = physicsObject.Radius;
+
+                // Clamp with the same epsilon to guarantee no visible penetration
+                centerPosition = new Vertex
+                {
+                    X = Math.Clamp(centerPosition.X, radius + CollisionEpsilonPx, worldSettings.WidthofCanvasInPixels  - radius - CollisionEpsilonPx),
+                    Y = Math.Clamp(centerPosition.Y, radius + CollisionEpsilonPx, worldSettings.HeightofCanvasInPixels - radius - CollisionEpsilonPx)
+                };
+
+                var physicsShapeInstance = new PhysicsShapeInstance(
+                    objectId: objectId,
+                    shape: physicsObject.Settings.Shape,
+                    radius: radius,
+                    centerVertice: centerPosition
+                );
+
+                frameShapes.Add(physicsShapeInstance);
+            }
+
+            result.Add(frameShapes);
+        }
+
+        return result;
 	}
 }
 
