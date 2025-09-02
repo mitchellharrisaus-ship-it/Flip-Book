@@ -10,4 +10,6 @@ public interface IAnimationRepository : IRepository<AnimationReference>
 	void RenameAnimation(Guid animationID, string newName);
 
 	AnimationReference? GetByTitleAndUserID(string animationTitle, Guid userID);
+
+	void DeleteAnimation(Guid animationID);
 }

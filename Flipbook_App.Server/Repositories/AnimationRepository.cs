@@ -48,4 +48,13 @@ public class AnimationRepository : Repository<AnimationReference>, IAnimationRep
 			UserID = found.UserID,
 		};
 	}
+
+	public void DeleteAnimation(Guid animationID)
+	{
+		var animation = context.Animations.Find(animationID);
+		if (animation != null)
+		{
+			context.Animations.Remove(animation);
+		}
+	}
 }

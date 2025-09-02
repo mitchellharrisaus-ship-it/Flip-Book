@@ -83,6 +83,15 @@ public class BlobStorageService : IBlobStorageService
 		return animation;
 	}
 
+	public async Task DeleteAnimation(Guid animationID)
+	{
+		await foreach (var blob in containerClient.GetBlobsAsync(prefix: animationID.ToString()))
+		{
+			var blobClient = containerClient.GetBlobClient(blob.Name);
+			await blobClient.DeleteIfExistsAsync();
+		}
+	}
+
 	public async Task UploadThumbnails(Guid animationID, List<byte[]> thumbnails)
 	{
 		for (var thumbnailIndex = 0; thumbnailIndex < thumbnails.Count; thumbnailIndex++)

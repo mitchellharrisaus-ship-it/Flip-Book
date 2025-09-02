@@ -1,6 +1,7 @@
 using Flipbook_App.Repositories;
 using Flipbook_App.Services;
 using FlipBook_App.Shared.Core;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Flipbook_App.Pages;
@@ -42,6 +43,19 @@ public class ProjectsModel : PageModel
 				project.ThumbnailUrls = thumbnails.Select(u => u.ToString()).ToList();
 			}
 		}
+	}
+
+	[BindProperty]
+	public Guid AnimationID { get; set; }
+
+	public async Task<IActionResult> OnPostDeleteProjectAsync()
+	{
+		await blobStorageService.DeleteAnimation(AnimationID);
+		repositoryManager.Animations.DeleteAnimation(AnimationID);
+
+		await repositoryManager.SaveChangesAsync();
+
+		return new JsonResult(new { success = true });
 	}
 }
 

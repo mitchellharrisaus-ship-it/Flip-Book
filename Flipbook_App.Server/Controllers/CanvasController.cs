@@ -97,7 +97,7 @@ public class CanvasController : ControllerBase
 
 		return Ok(validTitle);
 	}
-
+	
 	[Route("title/{animationID}/{newTitle}")]
 	[HttpPost]
 	[Authorize]

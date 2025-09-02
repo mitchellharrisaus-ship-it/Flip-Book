@@ -8,6 +8,8 @@ public interface IBlobStorageService
 
 	Task<Animation> DownloadAnimation(Guid animationID);
 
+	Task DeleteAnimation(Guid animationID);
+
 	Task UploadThumbnails(Guid animationID, List<byte[]> thumbnails);
 
 	Task<List<Uri>> GetThumbnails(Guid animationID);

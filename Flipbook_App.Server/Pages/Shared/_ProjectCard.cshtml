@@ -1,0 +1,74 @@
+﻿@model Flipbook_App.Pages.DashboardEntry
+
+<div class="card h-100 shadow-sm project-card">
+    <a href="/canvas/@Model.AnimationID" class="text-decoration-none card-link" style="display:block;">
+        @if (Model.ThumbnailUrls.Any())
+        {
+            var carouselId = $"carousel-{Model.AnimationID}";
+            <div id="@carouselId" class="carousel slide" data-bs-ride="carousel" data-bs-interval="2500">
+                <div class="carousel-inner">
+                    @for (int i = 0; i < Model.ThumbnailUrls.Count; i++)
+                    {
+                        var activeClass = i == 0 ? "active" : "";
+                        <div class="carousel-item @activeClass">
+                            <img src="@Model.ThumbnailUrls[i]"
+                                 class="d-block w-100"
+                                 alt="Thumbnail for @Model.Title" />
+                        </div>
+                    }
+                </div>
+                @if (Model.ThumbnailUrls.Count > 1)
+                {
+                    <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:150px;">
+                <span class="text-muted">No Preview</span>
+            </div>
+        }
+
+        <div class="card-body d-flex flex-column">
+            <h5 class="card-title mb-0">@Model.Title</h5>
+            <p class="card-text text-muted mt-auto">
+                Created: @Model.CreatedAt.ToString("MMM dd, yyyy")
+            </p>
+        </div>
+    </a>
+    <button type="button"
+            class="btn btn-danger delete-btn"
+            onclick="confirmDelete('@Model.AnimationID')"
+            title="Delete Project">
+        🗑️
+    </button>
+</div>
+
+<style>
+    .project-card {
+        position: relative;
+    }
+
+    .delete-btn {
+        position: absolute;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 2;
+        font-size: 1.5rem;
+        padding: 0.5rem 0.7rem;
+        border-radius: 50%;
+    }
+
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+</style>
