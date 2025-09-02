@@ -22,6 +22,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 	public bool IsPhysicsEnabled { get; set; } = false;
 	public bool PhysicsAppliesOnShapes { get; set; } = false;
 	public bool IsDrawingEnabled { get; set; } = true;
+	public bool OnionLayerEnabled { get; set; } = false;
 	public PhysicsSettings? CurrentPhysicsSettings { get; set; }
 
 	bool isDrawing;
@@ -265,8 +266,13 @@ public class SkiaDrawingService : ISkiaDrawingService
 	{
 		canvas.Clear(SKColors.White);
 
-		// Draw actions in the order they were added (oldest first, newest last)
-		var actions = CurrentFrame.Actions.Reverse();
+		if (OnionLayerEnabled)
+		{
+			DrawOnionLayer(canvas);
+		}
+
+			// Draw actions in the order they were added (oldest first, newest last)
+			var actions = CurrentFrame.Actions.Reverse();
 		foreach (var shape in actions)
 		{
 			DrawShape(canvas, shape);
@@ -280,7 +286,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 		DrawShape(canvas, CurrentShape);
 	}
 
-	static void DrawShape(SKCanvas canvas, DrawActionDTO shape)
+	static void DrawShape(SKCanvas canvas, DrawActionDTO shape, bool isOnionLayer = false)
 	{
 		if (shape.Brush == BrushType.Lasso)
 		{
@@ -304,7 +310,7 @@ public class SkiaDrawingService : ISkiaDrawingService
 			return;
 		}
 
-		using var paint = GetShapePaint(shape);
+		using var paint = GetShapePaint(shape, isOnionLayer);
 
 		if (shape.Brush == BrushType.Circle)
 		{
@@ -475,9 +481,27 @@ public class SkiaDrawingService : ISkiaDrawingService
 		}
 	}
 
-	static SKPaint GetShapePaint(DrawActionDTO shape)
+	void DrawOnionLayer(SKCanvas canvas)
+	{
+		// Draw previous frame with reduced opacity
+		if (CurrentFrameIndex > 0)
+		{
+			var previousFrame = Frames[CurrentFrameIndex - 1];
+			foreach (var shape in previousFrame.Actions)
+			{
+				DrawShape(canvas, shape, true);
+			}
+		}
+	}
+
+	static SKPaint GetShapePaint(DrawActionDTO shape, bool isOnionLayer = false)
 	{
 		var color = new SKColor((byte)shape.BrushColour.R, (byte)shape.BrushColour.G, (byte)shape.BrushColour.B, (byte)shape.BrushColour.A);
+		if (isOnionLayer)
+		{
+			// Reduce opacity for onion layer
+			color = color.WithAlpha((byte)(color.Alpha / 4));
+		}
 
 		return new SKPaint
 		{
@@ -498,6 +522,11 @@ public class SkiaDrawingService : ISkiaDrawingService
 		{
 			BrushColour = SKColor.Parse(color);
 		}
+	}
+
+	public void ToggleOnionLayer()
+	{
+		OnionLayerEnabled = !OnionLayerEnabled;
 	}
 
 	public IList<byte[]> RenderThumbnails(int thumbWidth = 400, int thumbHeight = 400)

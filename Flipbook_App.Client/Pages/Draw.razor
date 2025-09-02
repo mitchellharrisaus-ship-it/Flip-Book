@@ -67,6 +67,15 @@
             </div>
         </div>
 
+        <div class="frame-actions" style="margin-top: 8px;">
+            <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox"
+                       checked="@drawingService.OnionLayerEnabled"
+                       @onchange="ToggleOnionLayer" />
+                <span>Onion Layers</span>
+            </label>
+        </div>
+
         <div class="canvas-list">
             @for (var frameIndex = 0; frameIndex < drawingService.Frames.Count(); frameIndex++)
             {
@@ -725,6 +734,12 @@
     void ClearCanvas()
     {
         drawingService.Clear();
+        RedrawCanvas();
+    }
+
+    void ToggleOnionLayer(ChangeEventArgs e)
+    {
+        drawingService.ToggleOnionLayer();
         RedrawCanvas();
     }
 

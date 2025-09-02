@@ -34,6 +34,8 @@ public interface ISkiaDrawingService
 
 	void Draw(SKCanvas canvas);
 
+	void ToggleOnionLayer();
+
 	IList<byte[]> RenderThumbnails(int thumbWidth = 200, int thumbHeight = 150);
 
 	IList<SKData> RenderAnimation(int renderQuality = 100, int width = 700, int height = 700);
