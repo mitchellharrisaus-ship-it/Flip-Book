@@ -1,6 +1,7 @@
 ﻿using FlipBook_App.Shared.Core;
 using FlipBook_Library.Core;
 using FlipBook_Library.DTOs;
+using FlipBook_Library.Enums;
 using FlipBook_Library.Services;
 using PhysicsEngine.Core;
 
@@ -73,9 +74,32 @@ public class FrameGeneratorService
 		};
 	}
 
+	public void AddAllObjectsFromFirstFrameToAllFrames(List<Frame> frames)
+	{
+		var firstFrame = frames.FirstOrDefault();
+		if (firstFrame == null) return;
+		
+		var nonPhysicsObjects = firstFrame.Actions
+			.Where(action => !action.IsPhysicsObject)
+			.ToList();
+		
+		frames
+			.Where(frame => frame.FrameIndex != 0)
+			.ToList()
+			.ForEach(frame => nonPhysicsObjects.ForEach(action => frame.Actions.Push(action)));
+	}
+
 	public IList<Vertex> MapCentreToShape(PhysicsShapeInstance shapeInstance)
 	{
-		// Use the new GenerateCircleVertices method to convert center + radius to vertices
-		return drawShapeService.GenerateCircleVertices(shapeInstance.CenterVertice, shapeInstance.Radius);
+		if (shapeInstance.Shape == PhysicsShape.Square)
+		{
+			// For squares, use the same radius as the side length / 2
+			return drawShapeService.GenerateSquareVertices(shapeInstance.CenterVertice, shapeInstance.Radius * 2);
+		}
+		else
+		{
+			// For circles and other shapes
+			return drawShapeService.GenerateCircleVertices(shapeInstance.CenterVertice, shapeInstance.Radius);
+		}
 	}
 }

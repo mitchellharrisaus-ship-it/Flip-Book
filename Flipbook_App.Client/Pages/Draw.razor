@@ -15,6 +15,31 @@
 @inject NavigationManager Navigation
 @inject ToastService ToastService
 
+<style>
+    .frame-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .clear-all-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: #dc3545;
+        color: white;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .clear-all-btn:hover {
+        background-color: #bd2130;
+    }
+</style>
+
 <div class="main-header">
     <label for="projectName">Name of Project:</label>
     <input type="text" id="projectName" @bind="AnimationTitle" />
@@ -32,9 +57,14 @@
     <div class="canvas-sidebar">
         <div class="sidebar-header">
             <h4>Frames</h4>
-            <button class="add-canvas-btn" @onclick="CreateNewFrame" title="Add new canvas">
-                <span>+</span>
-            </button>
+            <div class="frame-actions">
+                <button class="add-canvas-btn" @onclick="CreateNewFrame" title="Add new frame">
+                    <span>+</span>
+                </button>
+                <button class="clear-all-btn" @onclick="ClearAllFrames" title="Clear all frames">
+                    <span>🗑️</span>
+                </button>
+            </div>
         </div>
 
         <div class="canvas-list">
@@ -157,7 +187,7 @@
                     </label>
                 </div>
 
-                <!-- Generate Physics Frames Button -->
+                <!-- Generate Physics Frames Button - removed the duplicate checkbox -->
                 <div class="physics-checkbox-group">
                     <button class="btn btn-primary" @onclick="GenerateFrames" disabled="@(!isPhysicsEnabled)" title="Generate frames with physics applied">
                         🚀 Generate Physics Frames
@@ -197,6 +227,7 @@
                     <label for="shapeDropdown">Preset Shapes:</label>
                     <select id="shapeDropdown" @onchange="OnShapeSelectionChanged" value="@selectedShape" disabled="@(currentDrawingMode != DrawingMode.Shape)">
                         <option value="@BrushType.Circle">Circle</option>
+                        <option value="@BrushType.Square">Square</option>
                     </select>
                 </div>
 
@@ -241,6 +272,14 @@
                     <div class="setting-group">
                         <label for="gravity">Gravity (ms-2):</label>
                         <input type="number" id="gravity" step="0.1" @bind="currentPhysicsSettings.Gravity" />
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="currentPhysicsSettings.RenderFirstFrameOnAllFrames" />
+                            Render First Frame On All Frames
+                        </label>
+                        <small class="text-muted">When enabled, non-physics objects from the first frame will be included in all generated frames.</small>
                     </div>
                 </div>
             }
@@ -448,11 +487,18 @@
 
         // Ensure canvas settings are current before assigning
         UpdatePhysicsCanvasSettings();
-        drawingService.CurrentPhysicsSettings = isPhysicsEnabled ? currentPhysicsSettings : null;
-
-        // Reset physics applies on shapes when physics is disabled
-        if (!isPhysicsEnabled)
+        
+        // If physics is being enabled, make sure RenderFirstFrameOnAllFrames is initially false
+        if (isPhysicsEnabled)
         {
+            // Make sure RenderFirstFrameOnAllFrames is initially false when enabling physics
+            currentPhysicsSettings.RenderFirstFrameOnAllFrames = false;
+            drawingService.CurrentPhysicsSettings = currentPhysicsSettings;
+        }
+        else
+        {
+            // Reset physics settings when disabled
+            drawingService.CurrentPhysicsSettings = null;
             physicsAppliesOnShapes = false;
             drawingService.PhysicsAppliesOnShapes = false;
         }
@@ -621,6 +667,28 @@
                     return action;
                 }
             }
+            else if (action.Brush == BrushType.Square && action.Vertices.Count >= 2)
+            {
+                // Check if click is inside square
+                var center = action.Vertices[0];
+                var cornerPoint = action.Vertices[1];
+                
+                var distX = Math.Abs(cornerPoint.X - center.X);
+                var distY = Math.Abs(cornerPoint.Y - center.Y);
+                var halfSide = Math.Max(distX, distY);
+                
+                // Calculate square boundaries
+                var left = center.X - halfSide;
+                var right = center.X + halfSide;
+                var top = center.Y - halfSide;
+                var bottom = center.Y + halfSide;
+                
+                // Check if point is inside the square
+                if (x >= left && x <= right && y >= top && y <= bottom)
+                {
+                    return action;
+                }
+            }
             else
             {
                 // Check if click is near pen stroke (simple proximity check)
@@ -660,6 +728,19 @@
         RedrawCanvas();
     }
 
+    async Task ClearAllFrames()
+    {
+        // Show confirmation dialog before proceeding
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to clear all frames? This action cannot be undone.");
+        
+        if (confirmed)
+        {
+            drawingService.ClearAllFrames();
+            activeFrameIndex = 0;
+            RedrawCanvas();
+        }
+    }
+
     void Undo()
     {
         drawingService.Undo();
@@ -681,7 +762,14 @@
         // Make sure we have the most up-to-date canvas position
         UpdatePhysicsCanvasSettings();
 
+        // Generate the frames with physics
         frameGeneratorService.GenerateFrames(drawingService.Frames, currentPhysicsSettings);
+        
+        // If enabled, add non-physics objects from first frame to all frames
+        if (currentPhysicsSettings.RenderFirstFrameOnAllFrames)
+        {
+            frameGeneratorService.AddAllObjectsFromFirstFrameToAllFrames(drawingService.Frames);
+        }
 
         Console.WriteLine($"Physics generation with canvas at: ({currentPhysicsSettings.TopLeftCanvasCoordinates.X}, {currentPhysicsSettings.TopLeftCanvasCoordinates.Y})");
         Console.WriteLine($"Canvas boundaries: width={currentPhysicsSettings.WidthofCanvasInPixels}, height={currentPhysicsSettings.HeightofCanvasInPixels}");

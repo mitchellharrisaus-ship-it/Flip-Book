@@ -18,4 +18,5 @@ public class PhysicsSettings
 	public Vertex TopLeftCanvasCoordinates { get; set; }
 	public int HeightofCanvasInPixels { get; set; }
 	public int WidthofCanvasInPixels { get; set; }
+	public bool RenderFirstFrameOnAllFrames { get; set; }
 }

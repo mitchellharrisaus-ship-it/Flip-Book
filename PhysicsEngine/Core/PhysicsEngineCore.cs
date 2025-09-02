@@ -12,7 +12,7 @@ public class PhysicsEngineCore
 	float Width { get; set; }
 
 	// Increase this if you still see a tiny overlap (try 2–3 px depending on your stroke thickness/DPI)
-	private const float CollisionEpsilonPx = 3.0f;
+	private const float CollisionEpsilonPx = 2.5f;
 
 	List<PhysicsObject> physicsObjects = new();
 	PhysicsSettings worldSettings;
@@ -257,26 +257,39 @@ public class PhysicsEngineCore
 	}
 	private (float newVelX, float newVelY) CalculatePostCollisionVelocity(float velX, float velY, CollisionSide collisionSide, float elasticity, float timeFromStart)
 	{
-		var gravity = worldSettings.Gravity;
-		
-		// Calculate velocity at collision time (accounting for gravity effect on Y velocity)
-		var velYAtCollision = velY + gravity * timeFromStart;
-		
-		switch (collisionSide)
-		{
-			case CollisionSide.Left:
-			case CollisionSide.Right:
-				// Horizontal collision - reverse X velocity with elasticity, keep Y velocity
-				return (-velX * elasticity, velYAtCollision);
-				
-			case CollisionSide.Top:
-			case CollisionSide.Bottom:
-				// Vertical collision - keep X velocity, reverse Y velocity with elasticity
-				return (velX, -velYAtCollision * elasticity);
-				
-			default:
-				return (velX, velYAtCollision);
-		}
+    var gravity = worldSettings.Gravity;
+    
+    // Calculate velocity at collision time (accounting for gravity effect on Y velocity)
+    var velYAtCollision = velY + gravity * timeFromStart;
+    
+    switch (collisionSide)
+    {
+        case CollisionSide.Left:
+        case CollisionSide.Right:
+            // Horizontal collision - reverse X velocity with elasticity, keep Y velocity
+            return (-velX * elasticity, velYAtCollision);
+            
+        case CollisionSide.Top:
+            // Top collision - keep X velocity, reverse Y velocity with elasticity
+            return (velX, -velYAtCollision * elasticity);
+            
+        case CollisionSide.Bottom:
+            // Bottom collision - keep X velocity, reverse Y velocity with elasticity
+            // The problem is that with gravity constantly pulling down, if the bounce is too weak,
+            // the ball can get stuck at the bottom. We need to ensure a minimum upward velocity.
+            var bounceVelocity = -velYAtCollision * elasticity;
+            
+            // If the calculated bounce velocity is too low, enforce a minimum bounce
+            var minimumBounceVelocity = Math.Max(0.5f * Math.Abs(gravity), 1.0f);
+            if (bounceVelocity > -minimumBounceVelocity) {
+                bounceVelocity = -minimumBounceVelocity;
+            }
+            
+            return (velX, bounceVelocity);
+            
+        default:
+            return (velX, velYAtCollision);
+    }
 	}
 
 	public TrajectoryFunction GenerateTrajectory(PhysicsObject physicsObject)
@@ -470,57 +483,91 @@ public class PhysicsEngineCore
 				Math.Pow(circumferencePoint.Y - center.Y, 2)
 			);
 		}
-		return 0f;
+		else if (shape == PhysicsShape.Square && shapeCoordinates.Count >= 2)
+		{
+			// For squares, calculate the half-size based on the distance from center to corner
+			var center = shapeCoordinates[0];
+			var cornerPoint = shapeCoordinates[1];
+
+			var distX = Math.Abs(cornerPoint.X - center.X);
+			var distY = Math.Abs(cornerPoint.Y - center.Y);
+			
+			// Use the maximum of X and Y distances to get the half-side length
+			// This will be the "radius" of the square for collision purposes
+			return Math.Max(distX, distY);
+		}
+		
+		return 0f; // Default for other shapes
 	}
 
 	public List<List<PhysicsShapeInstance>> GenerateCoordinatesFromProjectileMotionFunctions(Dictionary<int, List<TrajectoryFunction>> projectileMotionFunctions)
 	{
-		var result = new List<List<PhysicsShapeInstance>>();
-        var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
+    var result = new List<List<PhysicsShapeInstance>>();
+    var timePerFrame = worldSettings.TimeToMap / worldSettings.NumberOfFrames;
 
-        for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
+    for (int frameIndex = 0; frameIndex < worldSettings.NumberOfFrames; frameIndex++)
+    {
+        var frameShapes = new List<PhysicsShapeInstance>();
+
+        foreach (var objectTrajectories in projectileMotionFunctions)
         {
-            var currentTime = frameIndex * timePerFrame;
-            var frameShapes = new List<PhysicsShapeInstance>();
+            var objectId = objectTrajectories.Key;
+            var trajectories = objectTrajectories.Value;
+            var physicsObject = physicsObjects.FirstOrDefault(po => po.Id == objectId);
+            
+            if (physicsObject == null) continue;
 
-            foreach (var objectTrajectories in projectileMotionFunctions)
+            // For frame 1, use the exact initial position without physics calculations
+            if (frameIndex == 0)
             {
-                var objectId = objectTrajectories.Key;
-                var trajectories = objectTrajectories.Value;
-
-                var activeTrajectory = trajectories.FirstOrDefault(t => currentTime >= t.StartTime && currentTime <= t.EndTime);
-                if (activeTrajectory == null) continue;
-
-                var centerPosition = activeTrajectory.GetPositionAtTime(currentTime);
-                if (centerPosition.X == -9999 && centerPosition.Y == -9999) continue;
-
-                var physicsObject = physicsObjects.FirstOrDefault(po => po.Id == objectId);
-                if (physicsObject == null) continue;
-
-                var radius = physicsObject.Radius;
-
-                // Clamp with the same epsilon to guarantee no visible penetration
-                centerPosition = new Vertex
-                {
-                    X = Math.Clamp(centerPosition.X, radius + CollisionEpsilonPx, worldSettings.WidthofCanvasInPixels  - radius - CollisionEpsilonPx),
-                    Y = Math.Clamp(centerPosition.Y, radius + CollisionEpsilonPx, worldSettings.HeightofCanvasInPixels - radius - CollisionEpsilonPx)
-                };
-
-                var physicsShapeInstance = new PhysicsShapeInstance(
-                    objectId: objectId,
-                    shape: physicsObject.Settings.Shape,
-                    radius: radius,
-                    centerVertice: centerPosition
-                );
-
-                frameShapes.Add(physicsShapeInstance);
+                frameShapes.Add(new PhysicsShapeInstance(
+					objectId: objectId,
+					shape: physicsObject.Settings.Shape,
+					radius: physicsObject.Radius,
+					centerVertice: physicsObject.InitialCentreOfObject
+				));
+                continue;
             }
 
-            result.Add(frameShapes);
+            // For frame 2 onwards, use the trajectory calculations starting at t=0
+            // But we shift the time calculation to match as if frame 2 is the first physics frame
+            var adjustedFrameIndex = frameIndex - 1;  // Frame 2 becomes index 0 for physics calculation
+            var currentTime = adjustedFrameIndex * timePerFrame;
+            
+            var activeTrajectory = trajectories.FirstOrDefault(t => 
+                currentTime >= t.StartTime && currentTime <= t.EndTime);
+                
+            if (activeTrajectory == null) continue;
+
+            var centerPosition = activeTrajectory.GetPositionAtTime(currentTime);
+            if (centerPosition.X == -9999 && centerPosition.Y == -9999) continue;
+
+            var radius = physicsObject.Radius;
+
+            // Clamp with the same epsilon to guarantee no visible penetration
+            centerPosition = new Vertex
+            {
+                X = Math.Clamp(centerPosition.X, radius + CollisionEpsilonPx, 
+                    worldSettings.WidthofCanvasInPixels - radius - CollisionEpsilonPx),
+                Y = Math.Clamp(centerPosition.Y, radius + CollisionEpsilonPx, 
+                    worldSettings.HeightofCanvasInPixels - radius - CollisionEpsilonPx)
+            };
+
+            var shapeInstance = new PhysicsShapeInstance(
+                objectId: objectId,
+                shape: physicsObject.Settings.Shape,
+                radius: radius,
+                centerVertice: centerPosition
+            );
+
+            frameShapes.Add(shapeInstance);
         }
 
-        return result;
-	}
+        result.Add(frameShapes);
+    }
+
+    return result;
+}
 }
 
 // Supporting classes for collision detection
