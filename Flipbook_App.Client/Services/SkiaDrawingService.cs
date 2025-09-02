@@ -2,6 +2,7 @@ using FlipBook_Library.Core;
 using FlipBook_Library.DTOs;
 using SkiaSharp;
 using FlipBook_Library.Services;
+using FlipBook_Library.Enums;
 namespace Flipbook_App.Client.Services;
 
 public class SkiaDrawingService : ISkiaDrawingService
@@ -60,16 +61,16 @@ public class SkiaDrawingService : ISkiaDrawingService
 			return;
 		}
 
-		if (ActiveBrush == BrushType.Circle)
+		if (ActiveBrush == BrushType.Circle || ActiveBrush == BrushType.Square)
 		{
-			// For circles, we only need start and current point to define the radius
+			// For shapes, we only need start and current point to define the size
 			if (CurrentShape?.Vertices.Count == 1)
 			{
 				CurrentShape.Vertices.Add(new Vertex(x, y));
 			}
 			else if (CurrentShape?.Vertices.Count == 2)
 			{
-				// Update the second point (radius endpoint)
+				// Update the second point (size endpoint)
 				CurrentShape.Vertices[1] = new Vertex(x, y);
 			}
 		}
@@ -94,6 +95,19 @@ public class SkiaDrawingService : ISkiaDrawingService
 			return;
 		}
 
+		// If it's a physics object, initialize physics settings
+		if (CurrentShape.IsPhysicsObject)
+		{
+			CurrentShape.PhysicsSettings = new PhysicsObjectSettings
+			{
+				Elasticity = 0.8f,
+				Friction = 0.3f,
+				Mass = 1.0f,
+				Density = 1.0f,
+				Shape = ActiveBrush == BrushType.Square ? PhysicsShape.Square : PhysicsShape.Circle
+			};
+		}
+
 		CurrentFrame.Actions.Push(CurrentShape);
 		CurrentShape = null;
 	}
@@ -104,6 +118,39 @@ public class SkiaDrawingService : ISkiaDrawingService
 		CurrentShape?.Vertices.Clear();
 
 		isDrawing = false;
+	}
+
+	public void ClearAllFrames()
+	{
+		// Save the first frame but clear its actions
+		var firstFrame = Frames.FirstOrDefault();
+		
+		// Clear everything
+		Frames.Clear();
+		undoneActions.Clear();
+		
+		// Re-add the first frame (empty)
+		if (firstFrame != null)
+		{
+			firstFrame.Actions.Clear();
+			firstFrame.FrameIndex = 0;
+			Frames.Add(firstFrame);
+		}
+		else
+		{
+			// If somehow there was no first frame, create a new one
+			Frames.Add(new Frame { FrameIndex = 0 });
+		}
+		
+		// Add back a corresponding undone actions stack
+		undoneActions.Add(new Stack<DrawActionDTO>());
+		
+		// Reset the current frame index
+		CurrentFrameIndex = 0;
+		
+		// Ensure we're not in a drawing state
+		isDrawing = false;
+		CurrentShape = null;
 	}
 
 	public void RecreateCurrentFrame()
@@ -287,6 +334,51 @@ public class SkiaDrawingService : ISkiaDrawingService
 						PathEffect = SKPathEffect.CreateDash([3, 3], 0)
 					};
 					canvas.DrawCircle(center.X, center.Y, radius + 2, physicsPaint);
+				}
+			}
+		}
+		else if (shape.Brush == BrushType.Square)
+		{
+			// Square: draw a square using center and corner points
+			if (shape.Vertices.Count >= 2)
+			{
+				var center = shape.Vertices[0];
+				var cornerPoint = shape.Vertices[1];
+
+				// Calculate the side length using the distance from center to corner
+				var distX = Math.Abs(cornerPoint.X - center.X);
+				var distY = Math.Abs(cornerPoint.Y - center.Y);
+				var halfSide = Math.Max(distX, distY);
+
+				// Calculate the square's four corners
+				var left = center.X - halfSide;
+				var top = center.Y - halfSide;
+				var right = center.X + halfSide;
+				var bottom = center.Y + halfSide;
+
+				// Draw the square
+				var rect = new SKRect(left, top, right, bottom);
+				canvas.DrawRect(rect, paint);
+
+				// Draw physics indicator if it's a physics object
+				if (shape.IsPhysicsObject)
+				{
+					using var physicsPaint = new SKPaint
+					{
+						Style = SKPaintStyle.Stroke,
+						Color = SKColors.Orange,
+						StrokeWidth = 1,
+						PathEffect = SKPathEffect.CreateDash([3, 3], 0)
+					};
+					
+					// Draw slightly larger rectangle for physics indicator
+					var physicsRect = new SKRect(
+						left - 2, 
+						top - 2, 
+						right + 2, 
+						bottom + 2
+					);
+					canvas.DrawRect(physicsRect, physicsPaint);
 				}
 			}
 		}

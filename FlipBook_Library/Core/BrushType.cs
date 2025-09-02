@@ -8,5 +8,6 @@ public enum BrushType
 	Chain,
 	Kaleidoscope,
 	Circle,
-	Lasso
+	Lasso,
+	Square
 }

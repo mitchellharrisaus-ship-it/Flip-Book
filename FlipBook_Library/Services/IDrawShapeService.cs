@@ -41,4 +41,12 @@ public interface IDrawShapeService
 	/// <param name="radiusInPixels">The radius of the circle in pixels</param>
 	/// <returns>A list of vertices that represent the circle (center + radius point)</returns>
 	IList<Vertex> GenerateCircleVertices(Vertex center, float radiusInPixels);
+
+	/// <summary>
+	/// Generates square vertices compatible with the drawing system without drawing
+	/// </summary>
+	/// <param name="center">The center point of the square</param>
+	/// <param name="sideLength">The side length of the square in pixels</param>
+	/// <returns>A list of vertices that represent the square (center + corner point)</returns>
+	IList<Vertex> GenerateSquareVertices(Vertex center, float sideLength);
 }

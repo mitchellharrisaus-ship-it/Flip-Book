@@ -2,5 +2,6 @@
 
 public enum PhysicsShape
 {
-	Circle
+	Circle,
+	Square
 }

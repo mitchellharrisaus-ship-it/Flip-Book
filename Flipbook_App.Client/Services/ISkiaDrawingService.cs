@@ -37,4 +37,6 @@ public interface ISkiaDrawingService
 	IList<byte[]> RenderThumbnails(int thumbWidth = 200, int thumbHeight = 150);
 
 	IList<SKData> RenderAnimation(int renderQuality = 100, int width = 700, int height = 700);
+
+	void ClearAllFrames();
 }

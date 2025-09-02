@@ -3,7 +3,7 @@ using FlipBook_Library.DTOs;
 using FlipBook_Library.Enums;
 using SkiaSharp;
 
-namespace FlipBook_Library.Services;  // Changed namespace
+namespace FlipBook_Library.Services;
 
 public class DrawShapeService : IDrawShapeService
 {
@@ -33,13 +33,9 @@ public class DrawShapeService : IDrawShapeService
 				DrawCircle(canvas, vertices, paint, isPhysicsObject);
 				break;
 
-			// Future shapes can be added here
-			// case PhysicsShape.Rectangle:
-			//     DrawRectangle(canvas, vertices, paint, isPhysicsObject);
-			//     break;
-			// case PhysicsShape.Triangle:
-			//     DrawTriangle(canvas, vertices, paint, isPhysicsObject);
-			//     break;
+			case PhysicsShape.Square:
+				DrawSquare(canvas, vertices, paint, isPhysicsObject);
+				break;
 
 			default:
 				// Default to pen/line drawing for unknown shapes
@@ -82,6 +78,28 @@ public class DrawShapeService : IDrawShapeService
 		return vertices;
 	}
 
+	public IList<Vertex> GenerateSquareVertices(Vertex center, float sideLength)
+	{
+		// Generate vertices compatible with square drawing
+		// We use a similar approach to circles - center point and point defining size
+		// - Vertex[0]: center point
+		// - Vertex[1]: corner point (used to calculate side length)
+		
+		var halfSide = sideLength / 2;
+		
+		var vertices = new List<Vertex>
+		{
+			center, // Center point
+			new Vertex 
+			{ 
+				X = center.X + halfSide,
+				Y = center.Y + halfSide 
+			}
+		};
+
+		return vertices;
+	}
+
 	#region Private Shape Drawing Methods
 
 	private void DrawCircle(SKCanvas canvas, IList<Vertex> vertices, SKPaint paint, bool isPhysicsObject)
@@ -106,6 +124,57 @@ public class DrawShapeService : IDrawShapeService
 		{
 			DrawPhysicsIndicator(canvas, center.X, center.Y, radius, isCircle: true);
 		}
+	}
+
+	private void DrawSquare(SKCanvas canvas, IList<Vertex> vertices, SKPaint paint, bool isPhysicsObject)
+	{
+		if (vertices.Count < 2) return;
+
+		// Extract center and corner point
+		var center = vertices[0];
+		var cornerPoint = vertices[1];
+
+		// Calculate the side length using the distance from center to corner
+		var distX = Math.Abs(cornerPoint.X - center.X);
+		var distY = Math.Abs(cornerPoint.Y - center.Y);
+		var halfSide = Math.Max(distX, distY);
+
+		// Calculate the square's four corners
+		var left = center.X - halfSide;
+		var top = center.Y - halfSide;
+		var right = center.X + halfSide;
+		var bottom = center.Y + halfSide;
+
+		// Draw the square
+		var rect = new SKRect(left, top, right, bottom);
+		canvas.DrawRect(rect, paint);
+
+		// Draw physics indicator if it's a physics object
+		if (isPhysicsObject)
+		{
+			DrawSquarePhysicsIndicator(canvas, center.X, center.Y, halfSide);
+		}
+	}
+
+	private void DrawSquarePhysicsIndicator(SKCanvas canvas, float centerX, float centerY, float halfSide)
+	{
+		using var physicsPaint = new SKPaint
+		{
+			Style = SKPaintStyle.Stroke,
+			Color = SKColors.Orange,
+			StrokeWidth = 1,
+			PathEffect = SKPathEffect.CreateDash([3, 3], 0)
+		};
+
+		// Draw dashed rectangle slightly larger than the original square
+		var padding = 2f;
+		var rect = new SKRect(
+			centerX - halfSide - padding,
+			centerY - halfSide - padding,
+			centerX + halfSide + padding,
+			centerY + halfSide + padding
+		);
+		canvas.DrawRect(rect, physicsPaint);
 	}
 
 	private void DrawLines(SKCanvas canvas, IList<Vertex> vertices, SKPaint paint, bool isPhysicsObject)
@@ -176,53 +245,10 @@ public class DrawShapeService : IDrawShapeService
 		return brushType switch
 		{
 			BrushType.Circle => PhysicsShape.Circle,
+			BrushType.Square => PhysicsShape.Square,
 			_ => PhysicsShape.Circle // Default fallback for other shapes
 		};
 	}
-
-	#endregion
-
-	#region Future Shape Methods (Template for expansion)
-
-	// Template methods for future shapes
-	/*
-    private void DrawRectangle(SKCanvas canvas, IList<Vertex> vertices, SKPaint paint, bool isPhysicsObject)
-    {
-        if (vertices.Count < 2) return;
-        
-        var topLeft = vertices[0];
-        var bottomRight = vertices[1];
-        
-        var rect = new SKRect(topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y);
-        canvas.DrawRect(rect, paint);
-        
-        if (isPhysicsObject)
-        {
-            // Draw physics indicator for rectangle
-        }
-    }
-
-    private void DrawTriangle(SKCanvas canvas, IList<Vertex> vertices, SKPaint paint, bool isPhysicsObject)
-    {
-        if (vertices.Count < 3) return;
-        
-        using var path = new SKPath();
-        path.MoveTo(vertices[0].X, vertices[0].Y);
-        
-        for (int i = 1; i < vertices.Count; i++)
-        {
-            path.LineTo(vertices[i].X, vertices[i].Y);
-        }
-        
-        path.Close();
-        canvas.DrawPath(path, paint);
-        
-        if (isPhysicsObject)
-        {
-            // Draw physics indicator for triangle
-        }
-    }
-    */
 
 	#endregion
 }
