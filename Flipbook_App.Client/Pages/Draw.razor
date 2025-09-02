@@ -435,7 +435,7 @@
             }
             catch (Exception ex)
             {
-                await ToastService.ShowToast($"Error loading animation: {ex.Message}", ToastType.Error);
+                ToastService.ShowToast($"Error loading animation: {ex.Message}", ToastType.Error);
             }
         }
 
@@ -812,11 +812,11 @@
             await ApiService.Save(drawingService.Frames, AnimationTitle);
             await ApiService.UploadThumbnails(animationThumbnails, AnimationTitle);
 
-            await ToastService.ShowToast("Successfully saved animation!", ToastType.Success);
+            ToastService.ShowToast("Successfully saved animation!", ToastType.Success);
         }
         catch (Exception ex)
         {
-            await ToastService.ShowToast($"Error saving animation: {ex.Message}", ToastType.Error);
+            ToastService.ShowToast($"Error saving animation: {ex.Message}", ToastType.Error);
         }
 
         StateHasChanged();
@@ -856,11 +856,11 @@
         {
             var renderedFrames = drawingService.RenderAnimation();
             await ApiService.Export(renderedFrames, AnimationTitle, options);
-            await ToastService.ShowToast("Successfully exported animation!", ToastType.Success);
+            ToastService.ShowToast("Successfully exported animation!", ToastType.Success);
         }
         catch (Exception ex)
         {
-            await ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
+            ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
         }
     }
 
