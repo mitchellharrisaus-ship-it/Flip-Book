@@ -53,8 +53,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 	services.AddSingleton<IExportService, ExportService>();
 
 	services.AddScoped<CanvasController>();
-
-
+	services.AddScoped<AuthService>();
 }
 
 // Middleware Pipeline

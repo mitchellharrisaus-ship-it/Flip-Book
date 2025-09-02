@@ -1,0 +1,39 @@
+﻿@page "/Settings"
+@model Flipbook_App.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">Settings</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger">@Model.ErrorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div class="alert alert-success">@Model.SuccessMessage</div>
+            }
+            <form method="post">
+                <div class="mb-3">
+                    <label for="Username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="Username" name="Username" value="@Model.Username" />
+                </div>
+
+                <br />
+
+                <div class="mb-3">
+                    <label for="Password" class="form-label">New Password</label>
+                    <input type="password" class="form-control" id="Password" name="Password" />
+                </div>
+                <div class="mb-3">
+                    <label for="ConfirmPassword" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="ConfirmPassword" name="ConfirmPassword" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>

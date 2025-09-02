@@ -787,6 +787,13 @@
         try {
             var animationThumbnails = drawingService.RenderThumbnails();
 
+            var validTitle = await ApiService.EnsureValidTitle(AnimationTitle);
+            if (validTitle != AnimationTitle)
+            {
+                ToastService.ShowToast($"Name: {AnimationTitle} was updated to {validTitle} because it was already in use", ToastType.Info);
+                AnimationTitle = validTitle;
+            }
+
             await ApiService.Save(drawingService.Frames, AnimationTitle);
             await ApiService.UploadThumbnails(animationThumbnails, AnimationTitle);
 
@@ -796,6 +803,8 @@
         {
             await ToastService.ShowToast($"Error saving animation: {ex.Message}", ToastType.Error);
         }
+
+        StateHasChanged();
     }
 
     void SelectTool(BrushType tool)

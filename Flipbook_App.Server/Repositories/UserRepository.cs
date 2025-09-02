@@ -38,4 +38,14 @@ public class UserRepository : Repository<User>, IUserRepository
 			.Include(u => u.Animations)
 			.FirstOrDefault(u => u.Username == username);
 	}
+
+	public void UpdateUser(User user)
+	{
+		var existingUser = context.Users.Find(user.Id);
+		if (existingUser != null)
+		{
+			existingUser.Username = user.Username;
+			existingUser.PasswordHash = user.PasswordHash;
+		}
+	}
 }

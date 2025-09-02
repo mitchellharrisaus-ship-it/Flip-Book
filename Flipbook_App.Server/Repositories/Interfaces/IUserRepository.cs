@@ -10,4 +10,6 @@ public interface IUserRepository : IRepository<User>
 	IList<AnimationReference> GetUserAnimations(string username);
 
 	User? GetByUsername(string username);
+
+	void UpdateUser(User user);
 }

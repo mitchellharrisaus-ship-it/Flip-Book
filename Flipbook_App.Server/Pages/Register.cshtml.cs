@@ -8,16 +8,19 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using FlipBook_Library.Core;
 using Flipbook_App.Repositories;
+using Flipbook_App.Services;
 
 namespace Flipbook_App.Pages;
 
 public class RegisterModel : PageModel
 {
 	private readonly RepositoryManager repositoryManager;
+	private readonly AuthService authService;
 
-	public RegisterModel(RepositoryManager repositoryManager)
+	public RegisterModel(RepositoryManager repositoryManager, AuthService authService)
 	{
 		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
+		this.authService = authService ?? throw new ArgumentNullException(nameof(authService));
 	}
 
 	[BindProperty]
@@ -41,25 +44,18 @@ public class RegisterModel : PageModel
 			return Page();
 
 		// Check for unique username
-		if (repositoryManager.Users.GetByUsername(Input.Username) != null)
+		if (authService.IsUsernameTaken(Input.Username))
 		{
 			ModelState.AddModelError("Input.Username", "Username is already taken.");
 			return Page();
 		}
 
 		// Hash password and save user
-		var salt = RandomNumberGenerator.GetBytes(16);
-		var hash = Convert.ToBase64String(KeyDerivation.Pbkdf2(
-			password: Input.Password,
-			salt: salt,
-			prf: KeyDerivationPrf.HMACSHA256,
-			iterationCount: 100_000,
-			numBytesRequested: 32));
-
+		var hashedPassword = authService.GeneratePassword(Input.Password);
 		var user = new User
 		{
 			Username = Input.Username,
-			PasswordHash = $"{Convert.ToBase64String(salt)}:{hash}"
+			PasswordHash = hashedPassword
 		};
 
 		repositoryManager.Users.Add(user);
@@ -67,9 +63,9 @@ public class RegisterModel : PageModel
 
 		// Auto-login
 		var claims = new List<Claim>
-	{
-		new Claim(ClaimTypes.Name, user.Username)
-	};
+		{
+			new Claim(ClaimTypes.Name, user.Username)
+		};
 		var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 		await HttpContext.SignInAsync(
 			CookieAuthenticationDefaults.AuthenticationScheme,
