@@ -90,7 +90,6 @@ public class DrawTests
         Assert.That(_drawingService.CurrentFrame.Actions.Count, Is.EqualTo(0));
     }
 
-    // Failing
     [Test]
     public void Undo_CallsDrawingServiceUndo()
     {
@@ -103,7 +102,6 @@ public class DrawTests
         Assert.That(_drawingService.CurrentFrame.Actions.Count, Is.EqualTo(before - 1));
     }
 
-    // Failing
     [Test]
     public void Redo_CallsDrawingServiceRedo()
     {
@@ -169,7 +167,6 @@ public class DrawTests
     }
 }
 
-// Test host class to expose internal state and methods for testing
 public class DrawRazorTestHost
 {
     public string AnimationTitle { get; set; } = "My Animation";
