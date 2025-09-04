@@ -14,12 +14,14 @@ public class CanvasController : ControllerBase
 	IBlobStorageService blobService;
 	IExportService exportService;
 	RepositoryManager repositoryManager;
+	LocalStorageService localStorageService;
 
-	public CanvasController(IBlobStorageService blobService, IExportService exportService, RepositoryManager repositoryManager)
+	public CanvasController(IBlobStorageService blobService, IExportService exportService, RepositoryManager repositoryManager, LocalStorageService localStorageService)
 	{
 		this.blobService = blobService ?? throw new ArgumentNullException(nameof(blobService));
 		this.exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
 		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
+		this.localStorageService = localStorageService ?? throw new ArgumentNullException(nameof(localStorageService));
 	}
 
 	[Route("save/{animationTitle}")]
@@ -45,7 +47,9 @@ public class CanvasController : ControllerBase
 			}
 		};
 
-		await blobService.UploadAnimation(animation);
+		// Defunct blob storage
+		//await blobService.UploadAnimation(animation);
+		await localStorageService.UploadAnimation(animation);
 		repositoryManager.Animations.CreateIfNotExists(animation, animationTitle);
 
 		await repositoryManager.SaveChangesAsync();
@@ -58,7 +62,9 @@ public class CanvasController : ControllerBase
 	[Authorize]
 	public async Task<IActionResult> LoadAnimation(string animationID)
 	{
-		var downloadedAnimation = await blobService.DownloadAnimation(Guid.Parse(animationID));
+		// Defunct blob storage
+		//var downloadedAnimation = await blobService.DownloadAnimation(Guid.Parse(animationID));
+		var downloadedAnimation = await localStorageService.DownloadAnimation(Guid.Parse(animationID));
 
 		// Query the animation reference to get the title
 		var animationReference = repositoryManager.Animations.GetById(Guid.Parse(animationID));
@@ -134,8 +140,11 @@ public class CanvasController : ControllerBase
 		if (user == null) return NotFound($"Couldn't find user by name {loggedInUser}"); 
 		
 		var existingAnimationReference = repositoryManager.Animations.GetByTitleAndUserID(animationTitle, user.Id); 
-		if (existingAnimationReference == null) return NotFound($"Couldn't find animation by title {animationTitle} for user {loggedInUser}"); 
-		
-		await blobService.UploadThumbnails(existingAnimationReference.AnimationID, thumbnails); return Ok("Successfully uploaded thumbnails");
+		if (existingAnimationReference == null) return NotFound($"Couldn't find animation by title {animationTitle} for user {loggedInUser}");
+
+		// Defunct blob storage
+		//await blobService.UploadThumbnails(existingAnimationReference.AnimationID, thumbnails);
+		await localStorageService.UploadThumbnails(existingAnimationReference.AnimationID, thumbnails);
+		return Ok("Successfully uploaded thumbnails");
 	}
 }

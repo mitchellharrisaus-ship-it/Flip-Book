@@ -10,11 +10,13 @@ public class ProjectsModel : PageModel
 {
 	RepositoryManager repositoryManager;
 	IBlobStorageService blobStorageService;
+	LocalStorageService localStorageService;
 
-	public ProjectsModel(RepositoryManager repositoryManager, IBlobStorageService blobStorageService)
+	public ProjectsModel(RepositoryManager repositoryManager, IBlobStorageService blobStorageService, LocalStorageService localStorageService)
 	{
 		this.repositoryManager = repositoryManager ?? throw new ArgumentNullException(nameof(repositoryManager));
 		this.blobStorageService = blobStorageService ?? throw new ArgumentNullException(nameof(blobStorageService));
+		this.localStorageService = localStorageService ?? throw new ArgumentNullException(nameof(localStorageService));
 	}
 
 	public IList<DashboardEntry> UserProjects { get; set; } = [];
@@ -35,9 +37,9 @@ public class ProjectsModel : PageModel
 			// Attach thumbnails
 			foreach (var project in UserProjects)
 			{
-				// get from BlobStorageService
-
-				var thumbnails = await blobStorageService.GetThumbnails(project.AnimationID);
+				// Defunct blob storage
+				//var thumbnails = await blobStorageService.GetThumbnails(project.AnimationID);
+				var thumbnails = await localStorageService.GetThumbnails(project.AnimationID);
 
 				// store as plain string URIs
 				project.ThumbnailUrls = thumbnails.Select(u => u.ToString()).ToList();
@@ -50,7 +52,9 @@ public class ProjectsModel : PageModel
 
 	public async Task<IActionResult> OnPostDeleteProjectAsync()
 	{
-		await blobStorageService.DeleteAnimation(AnimationID);
+		// Defunct blob storage
+		//await blobStorageService.DeleteAnimation(AnimationID);
+		await localStorageService.DeleteAnimation(AnimationID);
 		repositoryManager.Animations.DeleteAnimation(AnimationID);
 
 		await repositoryManager.SaveChangesAsync();

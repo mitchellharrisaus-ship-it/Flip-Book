@@ -3,7 +3,6 @@ using System;
 using Flipbook_App.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -16,27 +15,23 @@ namespace Flipbook_App.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Flipbook_App.Models.AnimationReference", b =>
+            modelBuilder.Entity("FlipBook_App.Shared.Core.AnimationReference", b =>
                 {
                     b.Property<Guid>("AnimationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("UserID")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("AnimationID");
 
@@ -46,19 +41,19 @@ namespace Flipbook_App.Migrations
                     b.ToTable("Animations");
                 });
 
-            modelBuilder.Entity("Flipbook_App.Models.User", b =>
+            modelBuilder.Entity("FlipBook_Library.Core.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -68,9 +63,9 @@ namespace Flipbook_App.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Flipbook_App.Models.AnimationReference", b =>
+            modelBuilder.Entity("FlipBook_App.Shared.Core.AnimationReference", b =>
                 {
-                    b.HasOne("Flipbook_App.Models.User", "User")
+                    b.HasOne("FlipBook_Library.Core.User", "User")
                         .WithMany("Animations")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -79,7 +74,7 @@ namespace Flipbook_App.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Flipbook_App.Models.User", b =>
+            modelBuilder.Entity("FlipBook_Library.Core.User", b =>
                 {
                     b.Navigation("Animations");
                 });

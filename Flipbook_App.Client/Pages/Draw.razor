@@ -856,11 +856,11 @@
         {
             var renderedFrames = drawingService.RenderAnimation();
             await ApiService.Export(renderedFrames, AnimationTitle, options);
-            ToastService.ShowToast("Successfully exported animation!", ToastType.Success);
+            await ToastService.ShowToast("Successfully exported animation!", ToastType.Success);
         }
         catch (Exception ex)
         {
-            ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
+            await ToastService.ShowToast($"Error exporting animation: {ex.Message}", ToastType.Error);
         }
     }
 

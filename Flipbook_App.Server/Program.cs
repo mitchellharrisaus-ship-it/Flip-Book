@@ -36,7 +36,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
 	// Database Context
 	services.AddDbContext<FlipbookDBContext>(options =>
-		options.UseSqlServer(config.GetConnectionString("Flipbook_DB")));
+		options.UseSqlite(config.GetConnectionString("Local_Flipbook_DB")));
 
 	// Repositories
 	services.AddScoped<IUserRepository, UserRepository>();
@@ -54,6 +54,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
 	services.AddScoped<CanvasController>();
 	services.AddScoped<AuthService>();
+	services.AddScoped<LocalStorageService>();
 }
 
 // Middleware Pipeline
